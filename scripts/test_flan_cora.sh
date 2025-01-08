@@ -1,3 +1,4 @@
+#This file is for testing the instructGLM on the prompt (I think) which runs pretrain.py. More comments in pretrain.py.
 #!/bin/bash
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
