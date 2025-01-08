@@ -1,3 +1,14 @@
+
+# Workflow Summary
+# Training Phase:
+# Load the graph dataset (Cora).
+# Convert nodes and edges into text format.
+# Train the InstructGLM model using these text inputs for classification or link prediction.
+# Testing Phase:
+# Load pre-trained model weights.
+# Evaluate the model's performance on validation tasks.
+# Output metrics like classification accuracy or link prediction scores.
+
 import collections
 from dis import dis
 import os
