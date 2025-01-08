@@ -8,6 +8,7 @@
 # Load pre-trained model weights.
 # Evaluate the model's performance on validation tasks.
 # Output metrics like classification accuracy or link prediction scores.
+# The train method inside Trainer has to be changed to do biased sampling.
 
 import collections
 from dis import dis
