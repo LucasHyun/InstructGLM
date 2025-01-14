@@ -39,7 +39,7 @@ from trainer_base import TrainerBase
 from pretrain_model import InstructGLM
 
 def save_pickle(data, filename):
-    with open(filename, "wb") as f:
+    with open(filename, "w+b") as f:
         pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 class FP(nn.Module):    # first_model, i.e. simple MLP for dimension transformation of OGB/ GIANT node embedding + freezed Llama-7b word embeddings.
