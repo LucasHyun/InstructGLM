@@ -1,5 +1,3 @@
-## I believe that this is the code that processes the graph inputs as it is defining the information about graphs here!
-
 all_tasks = {}
 
 task_subgroup_1 = {}

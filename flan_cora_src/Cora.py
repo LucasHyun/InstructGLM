@@ -194,6 +194,7 @@ class Cora_Dataset(Dataset):
         assert datum_info_idx[0] == idx
 
         if self.mode=='train':
+            print("##############################")
             if len(datum_info_idx) == 5:
                 task_name = datum_info_idx[1]
                 datum_idx = datum_info_idx[2]

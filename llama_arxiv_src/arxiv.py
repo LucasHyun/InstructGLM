@@ -272,6 +272,7 @@ class Arxiv_Dataset(Dataset):
             elif self.mode=='val':      # So far, we perform self-supervised link prediction task only during training to further enhance the model.
                 pass
 
+            # Chris: Reminder: L1 is 1-hop neighbors infomation
             if task_template['id'] == '1-1-1-1': 
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
