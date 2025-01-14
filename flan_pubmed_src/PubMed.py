@@ -66,10 +66,10 @@ class PubMed_Dataset(Dataset):
         self.real_feature=load_pickle(os.path.join('PubMed','final_norm_pub_real_feature.pkl')) #3
         self.train_L1=load_pickle(os.path.join('PubMed','final_pub_L1.pkl'))  #4
 
-        self.transductive=load_pickle(os.path.join('PubMed','final_pub_transductive.pkl'))  #5 a list
-        #self.transductive=load_pickle(os.path.join('PubMed','small_pub_transductive.pkl'))  #5 a list
-        self.classification=load_pickle(os.path.join('PubMed','final_pub_classification.pkl'))  #6
-        #self.classification=load_pickle(os.path.join('PubMed','small_pub_classification.pkl'))  #6
+        # self.transductive=load_pickle(os.path.join('PubMed','final_pub_transductive.pkl'))  #5 a list
+        self.transductive=load_pickle(os.path.join('PubMed','small_pub_transductive.pkl'))  #5 a list -> (low_label_ratio)
+        # self.classification=load_pickle(os.path.join('PubMed','final_pub_classification.pkl'))  #6
+        self.classification=load_pickle(os.path.join('PubMed','small_pub_classification.pkl'))  #6 -> (low_label_ratio)
         self.node_feature=load_pickle(os.path.join('PubMed','final_pubmed_node_feature.pkl'))  #7
 
         LA=[]
