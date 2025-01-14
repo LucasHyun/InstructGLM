@@ -1,3 +1,42 @@
 1_mmid1
 {'2-3-1-2-transductive': 0.0, '2-3-2-4-transductive': 0.0, '2-3-3-4-transductive': 0.0, '6-6-6-6-transductive': 0.0, '6-6-6-7-transductive': 0.0}
 
+1_mid1
+{'2-3-1-2-transductive': 0.0, '2-3-2-4-transductive': 0.0, '2-3-3-4-transductive': 0.0, '6-6-6-6-transductive': 0.0, '6-6-6-7-transductive': 0.0}
+
+1_mmid2
+{'2-3-1-2-transductive': 0.016, '2-3-2-4-transductive': 0.011, '2-3-3-4-transductive': 0.013, '6-6-6-6-transductive': 0.028, '6-6-6-7-transductive': 0.035}
+
+1_mid2
+{'2-3-1-2-transductive': 0.009, '2-3-2-4-transductive': 0.005, '2-3-3-4-transductive': 0.005, '6-6-6-6-transductive': 0.044, '6-6-6-7-transductive': 0.029}
+
+1_mmid3
+{'2-3-1-2-transductive': 0.209, '2-3-2-4-transductive': 0.259, '2-3-3-4-transductive': 0.317, '6-6-6-6-transductive': 0.16, '6-6-6-7-transductive': 0.268}
+
+1_mid3
+{'2-3-1-2-transductive': 0.09, '2-3-2-4-transductive': 0.137, '2-3-3-4-transductive': 0.136, '6-6-6-6-transductive': 0.095, '6-6-6-7-transductive': 0.206}
+
+1_mend
+{'2-3-1-2-transductive': 0.002, '2-3-2-4-transductive': 0.007, '2-3-3-4-transductive': 0.0, '6-6-6-6-transductive': 0.02, '6-6-6-7-transductive': 0.013}
+
+1_end
+{'2-3-1-2-transductive': 0.27, '2-3-2-4-transductive': 0.209, '2-3-3-4-transductive': 0.238, '6-6-6-6-transductive': 0.188, '6-6-6-7-transductive': 0.207}
+
+2_mmid1
+{'2-3-1-2-transductive': 0.321, '2-3-2-4-transductive': 0.364, '2-3-3-4-transductive': 0.37, '6-6-6-6-transductive': 0.165, '6-6-6-7-transductive': 0.233}
+
+2_mid1
+{'2-3-1-2-transductive': 0.495, '2-3-2-4-transductive': 0.476, '2-3-3-4-transductive': 0.504, '6-6-6-6-transductive': 0.042, '6-6-6-7-transductive': 0.43}
+
+2_mmid2
+{'2-3-1-2-transductive': 0.439, '2-3-2-4-transductive': 0.394, '2-3-3-4-transductive': 0.428, '6-6-6-6-transductive': 0.406, '6-6-6-7-transductive': 0.419}
+
+2_mid2
+{'2-3-1-2-transductive': 0.518, '2-3-2-4-transductive': 0.503, '2-3-3-4-transductive': 0.48, '6-6-6-6-transductive': 0.363, '6-6-6-7-transductive': 0.446}
+
+2_mmid3
+{'2-3-1-2-transductive': 0.435, '2-3-2-4-transductive': 0.436, '2-3-3-4-transductive': 0.435, '6-6-6-6-transductive': 0.413, '6-6-6-7-transductive': 0.413}
+
+2_mid3
+{'2-3-1-2-transductive': 0.455, '2-3-2-4-transductive': 0.484, '2-3-3-4-transductive': 0.47, '6-6-6-6-transductive': 0.461, '6-6-6-7-transductive': 0.462}
+
