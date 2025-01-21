@@ -402,6 +402,8 @@ class PubMed_Dataset(Dataset):
 
                             source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', '<extra_id_0>')
                             
+                            # print(source_text)
+                            # exit()
 
                             count+=1   
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
