@@ -1204,7 +1204,7 @@ class PubMed_Dataset(Dataset):
                                     )
                                     
                                     # check number of L2 hops in train_L2_undepleted
-                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                     
                                     # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                     if len(select_L1_hops) > 0:
@@ -1218,7 +1218,7 @@ class PubMed_Dataset(Dataset):
                                                     range(len(select_L1_hops)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L2_hops[select_L2_ID]
+                                                select_L2 = select_L1_hops[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -1317,7 +1317,7 @@ class PubMed_Dataset(Dataset):
                                     )
                                     
                                     # check number of L2 hops in train_L2_undepleted
-                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                     
                                     # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                     if len(select_L1_hops) > 0:
@@ -1331,7 +1331,7 @@ class PubMed_Dataset(Dataset):
                                                     range(len(select_L1_hops)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L2_hops[select_L2_ID]
+                                                select_L2 = select_L1_hops[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -1449,7 +1449,7 @@ class PubMed_Dataset(Dataset):
                                 )
                                 
                                 # check number of L2 hops in train_L2_undepleted
-                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                 
                                 # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                 if len(select_L1_hops) > 0:
@@ -1463,7 +1463,7 @@ class PubMed_Dataset(Dataset):
                                                 range(len(select_L1_hops)),
                                                 p = weights_L2 / np.sum(weights_L2)
                                             )
-                                            select_L2 = select_L2_hops[select_L2_ID]
+                                            select_L2 = select_L1_hops[select_L2_ID]
                                             
                                             # check number of L3 hops not in already_idx
                                             select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -1588,7 +1588,7 @@ class PubMed_Dataset(Dataset):
                                     )
                                     
                                     # check number of L2 hops in train_L2_undepleted
-                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                     
                                     # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                     if len(select_L1_hops) > 0:
@@ -1602,7 +1602,7 @@ class PubMed_Dataset(Dataset):
                                                     range(len(select_L1_hops)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L2_hops[select_L2_ID]
+                                                select_L2 = select_L1_hops[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -1715,7 +1715,7 @@ class PubMed_Dataset(Dataset):
                                     )
                                     
                                     # check number of L2 hops in train_L2_undepleted
-                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                     
                                     # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                     if len(select_L1_hops) > 0:
@@ -1729,7 +1729,7 @@ class PubMed_Dataset(Dataset):
                                                     range(len(select_L1_hops)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L2_hops[select_L2_ID]
+                                                select_L2 = select_L1_hops[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -1862,7 +1862,7 @@ class PubMed_Dataset(Dataset):
                                 )
                                 
                                 # check number of L2 hops in train_L2_undepleted
-                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                 
                                 # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                 if len(select_L1_hops) > 0:
@@ -1876,7 +1876,7 @@ class PubMed_Dataset(Dataset):
                                                 range(len(select_L1_hops)),
                                                 p = weights_L2 / np.sum(weights_L2)
                                             )
-                                            select_L2 = select_L2_hops[select_L2_ID]
+                                            select_L2 = select_L1_hops[select_L2_ID]
                                             
                                             # check number of L3 hops not in already_idx
                                             select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -2717,7 +2717,7 @@ class PubMed_Dataset(Dataset):
                                     )
                                     
                                     # check number of L2 hops in train_L2_undepleted
-                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                     
                                     # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                     if len(select_L1_hops) > 0:
@@ -2731,7 +2731,7 @@ class PubMed_Dataset(Dataset):
                                                     range(len(select_L1_hops)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L2_hops[select_L2_ID]
+                                                select_L2 = select_L1_hops[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -2829,7 +2829,7 @@ class PubMed_Dataset(Dataset):
                                     )
                                     
                                     # check number of L2 hops in train_L2_undepleted
-                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                     
                                     # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                     if len(select_L1_hops) > 0:
@@ -2843,7 +2843,7 @@ class PubMed_Dataset(Dataset):
                                                     range(len(select_L1_hops)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L2_hops[select_L2_ID]
+                                                select_L2 = select_L1_hops[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -2961,7 +2961,7 @@ class PubMed_Dataset(Dataset):
                                 )
                                 
                                 # check number of L2 hops in train_L2_undepleted
-                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                 
                                 # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                 if len(select_L1_hops) > 0:
@@ -2975,7 +2975,7 @@ class PubMed_Dataset(Dataset):
                                                 range(len(select_L1_hops)),
                                                 p = weights_L2 / np.sum(weights_L2)
                                             )
-                                            select_L2 = select_L2_hops[select_L2_ID]
+                                            select_L2 = select_L1_hops[select_L2_ID]
                                             
                                             # check number of L3 hops not in already_idx
                                             select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -3100,7 +3100,7 @@ class PubMed_Dataset(Dataset):
                                     )
                                     
                                     # check number of L2 hops in train_L2_undepleted
-                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                     
                                     # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                     if len(select_L1_hops) > 0:
@@ -3114,7 +3114,7 @@ class PubMed_Dataset(Dataset):
                                                     range(len(select_L1_hops)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L2_hops[select_L2_ID]
+                                                select_L2 = select_L1_hops[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -3227,7 +3227,7 @@ class PubMed_Dataset(Dataset):
                                     )
                                     
                                     # check number of L2 hops in train_L2_undepleted
-                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                     
                                     # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                     if len(select_L1_hops) > 0:
@@ -3241,7 +3241,7 @@ class PubMed_Dataset(Dataset):
                                                     range(len(select_L1_hops)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L2_hops[select_L2_ID]
+                                                select_L2 = select_L1_hops[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -3375,7 +3375,7 @@ class PubMed_Dataset(Dataset):
                                 )
                                 
                                 # check number of L2 hops in train_L2_undepleted
-                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                 
                                 # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                 if len(select_L1_hops) > 0:
@@ -3389,7 +3389,7 @@ class PubMed_Dataset(Dataset):
                                                 range(len(select_L1_hops)),
                                                 p = weights_L2 / np.sum(weights_L2)
                                             )
-                                            select_L2 = select_L2_hops[select_L2_ID]
+                                            select_L2 = select_L1_hops[select_L2_ID]
                                             
                                             # check number of L3 hops not in already_idx
                                             select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -4257,7 +4257,7 @@ class PubMed_Dataset(Dataset):
                                     )
                                     
                                     # check number of L2 hops in train_L2_undepleted
-                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                     
                                     # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                     if len(select_L1_hops) > 0:
@@ -4271,7 +4271,7 @@ class PubMed_Dataset(Dataset):
                                                     range(len(select_L1_hops)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L2_hops[select_L2_ID]
+                                                select_L2 = select_L1_hops[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -4369,7 +4369,7 @@ class PubMed_Dataset(Dataset):
                                     )
                                     
                                     # check number of L2 hops in train_L2_undepleted
-                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                     
                                     # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                     if len(select_L1_hops) > 0:
@@ -4383,7 +4383,7 @@ class PubMed_Dataset(Dataset):
                                                     range(len(select_L1_hops)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L2_hops[select_L2_ID]
+                                                select_L2 = select_L1_hops[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -4498,7 +4498,7 @@ class PubMed_Dataset(Dataset):
                                 )
                                 
                                 # check number of L2 hops in train_L2_undepleted
-                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                 
                                 # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                 if len(select_L1_hops) > 0:
@@ -4512,7 +4512,7 @@ class PubMed_Dataset(Dataset):
                                                 range(len(select_L1_hops)),
                                                 p = weights_L2 / np.sum(weights_L2)
                                             )
-                                            select_L2 = select_L2_hops[select_L2_ID]
+                                            select_L2 = select_L1_hops[select_L2_ID]
                                             
                                             # check number of L3 hops not in already_idx
                                             select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -4641,7 +4641,7 @@ class PubMed_Dataset(Dataset):
                                     )
                                     
                                     # check number of L2 hops in train_L2_undepleted
-                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                     
                                     # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                     if len(select_L1_hops) > 0:
@@ -4655,7 +4655,7 @@ class PubMed_Dataset(Dataset):
                                                     range(len(select_L1_hops)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L2_hops[select_L2_ID]
+                                                select_L2 = select_L1_hops[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -4766,7 +4766,7 @@ class PubMed_Dataset(Dataset):
                                     )
                                     
                                     # check number of L2 hops in train_L2_undepleted
-                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                     
                                     # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                     if len(select_L1_hops) > 0:
@@ -4780,7 +4780,7 @@ class PubMed_Dataset(Dataset):
                                                     range(len(select_L1_hops)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L2_hops[select_L2_ID]
+                                                select_L2 = select_L1_hops[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -4910,7 +4910,7 @@ class PubMed_Dataset(Dataset):
                                 )
                                 
                                 # check number of L2 hops in train_L2_undepleted
-                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                 
                                 # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                 if len(select_L1_hops) > 0:
@@ -4924,7 +4924,7 @@ class PubMed_Dataset(Dataset):
                                                 range(len(select_L1_hops)),
                                                 p = weights_L2 / np.sum(weights_L2)
                                             )
-                                            select_L2 = select_L2_hops[select_L2_ID]
+                                            select_L2 = select_L1_hops[select_L2_ID]
                                             
                                             # check number of L3 hops not in already_idx
                                             select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -5746,7 +5746,7 @@ class PubMed_Dataset(Dataset):
                                     )
                                     
                                     # check number of L2 hops in train_L2_undepleted
-                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                     
                                     # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                     if len(select_L1_hops) > 0:
@@ -5760,7 +5760,7 @@ class PubMed_Dataset(Dataset):
                                                     range(len(select_L1_hops)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L2_hops[select_L2_ID]
+                                                select_L2 = select_L1_hops[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -5858,7 +5858,7 @@ class PubMed_Dataset(Dataset):
                                     )
                                     
                                     # check number of L2 hops in train_L2_undepleted
-                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                     
                                     # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                     if len(select_L1_hops) > 0:
@@ -5872,7 +5872,7 @@ class PubMed_Dataset(Dataset):
                                                     range(len(select_L1_hops)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L2_hops[select_L2_ID]
+                                                select_L2 = select_L1_hops[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -5987,7 +5987,7 @@ class PubMed_Dataset(Dataset):
                                 )
                                 
                                 # check number of L2 hops in train_L2_undepleted
-                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                 
                                 # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                 if len(select_L1_hops) > 0:
@@ -6001,7 +6001,7 @@ class PubMed_Dataset(Dataset):
                                                 range(len(select_L1_hops)),
                                                 p = weights_L2 / np.sum(weights_L2)
                                             )
-                                            select_L2 = select_L2_hops[select_L2_ID]
+                                            select_L2 = select_L1_hops[select_L2_ID]
                                             
                                             # check number of L3 hops not in already_idx
                                             select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -6123,7 +6123,7 @@ class PubMed_Dataset(Dataset):
                                     )
                                     
                                     # check number of L2 hops in train_L2_undepleted
-                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                     
                                     # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                     if len(select_L1_hops) > 0:
@@ -6137,7 +6137,7 @@ class PubMed_Dataset(Dataset):
                                                     range(len(select_L1_hops)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L2_hops[select_L2_ID]
+                                                select_L2 = select_L1_hops[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -6248,7 +6248,7 @@ class PubMed_Dataset(Dataset):
                                     )
                                     
                                     # check number of L2 hops in train_L2_undepleted
-                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                     
                                     # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                     if len(select_L1_hops) > 0:
@@ -6262,7 +6262,7 @@ class PubMed_Dataset(Dataset):
                                                     range(len(select_L1_hops)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L2_hops[select_L2_ID]
+                                                select_L2 = select_L1_hops[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -6393,7 +6393,7 @@ class PubMed_Dataset(Dataset):
                                 )
                                 
                                 # check number of L2 hops in train_L2_undepleted
-                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                select_L1_hops = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
                                 
                                 # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
                                 if len(select_L1_hops) > 0:
@@ -6407,7 +6407,7 @@ class PubMed_Dataset(Dataset):
                                                 range(len(select_L1_hops)),
                                                 p = weights_L2 / np.sum(weights_L2)
                                             )
-                                            select_L2 = select_L2_hops[select_L2_ID]
+                                            select_L2 = select_L1_hops[select_L2_ID]
                                             
                                             # check number of L3 hops not in already_idx
                                             select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
