@@ -1325,14 +1325,15 @@ class PubMed_Dataset(Dataset):
                                         go_on_L2 = True
                                         
                                         while go_on_L2:
-                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                            if len(toselectfrom) > 0:
                                                 # select random node from select_L1_hops
-                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                                 select_L2_ID = np.random.choice(
-                                                    range(len(select_L1_hops)),
+                                                    range(len(toselectfrom)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                select_L2 = toselectfrom[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -1457,14 +1458,15 @@ class PubMed_Dataset(Dataset):
                                     go_on_L2 = True
                                     
                                     while go_on_L2:
-                                        if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                        toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                        if len(toselectfrom) > 0:
                                             # select random node from select_L1_hops
-                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                             select_L2_ID = np.random.choice(
-                                                range(len(select_L1_hops)),
+                                                range(len(toselectfrom)),
                                                 p = weights_L2 / np.sum(weights_L2)
                                             )
-                                            select_L2 = select_L1_hops[select_L2_ID]
+                                            select_L2 = toselectfrom[select_L2_ID]
                                             
                                             # check number of L3 hops not in already_idx
                                             select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -1596,14 +1598,15 @@ class PubMed_Dataset(Dataset):
                                         go_on_L2 = True
                                         
                                         while go_on_L2:
-                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                            if len(toselectfrom) > 0:
                                                 # select random node from select_L1_hops
-                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                                 select_L2_ID = np.random.choice(
-                                                    range(len(select_L1_hops)),
+                                                    range(len(toselectfrom)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                select_L2 = toselectfrom[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -1723,14 +1726,15 @@ class PubMed_Dataset(Dataset):
                                         go_on_L2 = True
                                         
                                         while go_on_L2:
-                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                            if len(toselectfrom) > 0:
                                                 # select random node from select_L1_hops
-                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                                 select_L2_ID = np.random.choice(
-                                                    range(len(select_L1_hops)),
+                                                    range(len(toselectfrom)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                select_L2 = toselectfrom[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -1870,14 +1874,15 @@ class PubMed_Dataset(Dataset):
                                     go_on_L2 = True
                                     
                                     while go_on_L2:
-                                        if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                        toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                        if len(toselectfrom) > 0:
                                             # select random node from select_L1_hops
-                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                             select_L2_ID = np.random.choice(
-                                                range(len(select_L1_hops)),
+                                                range(len(toselectfrom)),
                                                 p = weights_L2 / np.sum(weights_L2)
                                             )
-                                            select_L2 = select_L1_hops[select_L2_ID]
+                                            select_L2 = toselectfrom[select_L2_ID]
                                             
                                             # check number of L3 hops not in already_idx
                                             select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -2725,14 +2730,15 @@ class PubMed_Dataset(Dataset):
                                         go_on_L2 = True
                                         
                                         while go_on_L2:
-                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                            if len(toselectfrom) > 0:
                                                 # select random node from select_L1_hops
-                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                                 select_L2_ID = np.random.choice(
-                                                    range(len(select_L1_hops)),
+                                                    range(len(toselectfrom)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                select_L2 = toselectfrom[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -2837,14 +2843,15 @@ class PubMed_Dataset(Dataset):
                                         go_on_L2 = True
                                         
                                         while go_on_L2:
-                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                            if len(toselectfrom) > 0:
                                                 # select random node from select_L1_hops
-                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                                 select_L2_ID = np.random.choice(
-                                                    range(len(select_L1_hops)),
+                                                    range(len(toselectfrom)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                select_L2 = toselectfrom[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -2969,14 +2976,15 @@ class PubMed_Dataset(Dataset):
                                     go_on_L2 = True
                                     
                                     while go_on_L2:
-                                        if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                        toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                        if len(toselectfrom) > 0:
                                             # select random node from select_L1_hops
-                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                             select_L2_ID = np.random.choice(
-                                                range(len(select_L1_hops)),
+                                                range(len(toselectfrom)),
                                                 p = weights_L2 / np.sum(weights_L2)
                                             )
-                                            select_L2 = select_L1_hops[select_L2_ID]
+                                            select_L2 = toselectfrom[select_L2_ID]
                                             
                                             # check number of L3 hops not in already_idx
                                             select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -3108,14 +3116,15 @@ class PubMed_Dataset(Dataset):
                                         go_on_L2 = True
                                         
                                         while go_on_L2:
-                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                            if len(toselectfrom) > 0:
                                                 # select random node from select_L1_hops
-                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                                 select_L2_ID = np.random.choice(
-                                                    range(len(select_L1_hops)),
+                                                    range(len(toselectfrom)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                select_L2 = toselectfrom[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -3235,14 +3244,15 @@ class PubMed_Dataset(Dataset):
                                         go_on_L2 = True
                                         
                                         while go_on_L2:
-                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                            if len(toselectfrom) > 0:
                                                 # select random node from select_L1_hops
-                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                                 select_L2_ID = np.random.choice(
-                                                    range(len(select_L1_hops)),
+                                                    range(len(toselectfrom)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                select_L2 = toselectfrom[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -3383,14 +3393,15 @@ class PubMed_Dataset(Dataset):
                                     go_on_L2 = True
                                     
                                     while go_on_L2:
-                                        if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                        toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                        if len(toselectfrom) > 0:
                                             # select random node from select_L1_hops
-                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                             select_L2_ID = np.random.choice(
-                                                range(len(select_L1_hops)),
+                                                range(len(toselectfrom)),
                                                 p = weights_L2 / np.sum(weights_L2)
                                             )
-                                            select_L2 = select_L1_hops[select_L2_ID]
+                                            select_L2 = toselectfrom[select_L2_ID]
                                             
                                             # check number of L3 hops not in already_idx
                                             select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -4265,14 +4276,15 @@ class PubMed_Dataset(Dataset):
                                         go_on_L2 = True
                                         
                                         while go_on_L2:
-                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                            if len(toselectfrom) > 0:
                                                 # select random node from select_L1_hops
-                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                                 select_L2_ID = np.random.choice(
-                                                    range(len(select_L1_hops)),
+                                                    range(len(toselectfrom)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                select_L2 = toselectfrom[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -4377,14 +4389,15 @@ class PubMed_Dataset(Dataset):
                                         go_on_L2 = True
                                         
                                         while go_on_L2:
-                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                            if len(toselectfrom) > 0:
                                                 # select random node from select_L1_hops
-                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                                 select_L2_ID = np.random.choice(
-                                                    range(len(select_L1_hops)),
+                                                    range(len(toselectfrom)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                select_L2 = toselectfrom[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -4506,14 +4519,15 @@ class PubMed_Dataset(Dataset):
                                     go_on_L2 = True
                                     
                                     while go_on_L2:
-                                        if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                        toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                        if len(toselectfrom) > 0:
                                             # select random node from select_L1_hops
-                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                             select_L2_ID = np.random.choice(
-                                                range(len(select_L1_hops)),
+                                                range(len(toselectfrom)),
                                                 p = weights_L2 / np.sum(weights_L2)
                                             )
-                                            select_L2 = select_L1_hops[select_L2_ID]
+                                            select_L2 = toselectfrom[select_L2_ID]
                                             
                                             # check number of L3 hops not in already_idx
                                             select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -4649,14 +4663,15 @@ class PubMed_Dataset(Dataset):
                                         go_on_L2 = True
                                         
                                         while go_on_L2:
-                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                            if len(toselectfrom) > 0:
                                                 # select random node from select_L1_hops
-                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                                 select_L2_ID = np.random.choice(
-                                                    range(len(select_L1_hops)),
+                                                    range(len(toselectfrom)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                select_L2 = toselectfrom[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -4774,14 +4789,15 @@ class PubMed_Dataset(Dataset):
                                         go_on_L2 = True
                                         
                                         while go_on_L2:
-                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                            if len(toselectfrom) > 0:
                                                 # select random node from select_L1_hops
-                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                                 select_L2_ID = np.random.choice(
-                                                    range(len(select_L1_hops)),
+                                                    range(len(toselectfrom)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                select_L2 = toselectfrom[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -4918,14 +4934,15 @@ class PubMed_Dataset(Dataset):
                                     go_on_L2 = True
                                     
                                     while go_on_L2:
-                                        if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                        toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                        if len(toselectfrom) > 0:
                                             # select random node from select_L1_hops
-                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                             select_L2_ID = np.random.choice(
-                                                range(len(select_L1_hops)),
+                                                range(len(toselectfrom)),
                                                 p = weights_L2 / np.sum(weights_L2)
                                             )
-                                            select_L2 = select_L1_hops[select_L2_ID]
+                                            select_L2 = toselectfrom[select_L2_ID]
                                             
                                             # check number of L3 hops not in already_idx
                                             select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -4933,11 +4950,7 @@ class PubMed_Dataset(Dataset):
                                             if len(select_L2_hops) > 0:
                                                 go_on_L2 = False
                                             else:
-                                                try:
-                                                    train_L2_undepleted.remove(select_L2)
-                                                except:
-                                                    print(train_L2_undepleted)
-                                                    print(select_L2)
+                                                train_L2_undepleted.remove(select_L2)
                                                 select_L2 = None
                                         else:
                                             go_on_L2 = False
@@ -5758,14 +5771,15 @@ class PubMed_Dataset(Dataset):
                                         go_on_L2 = True
                                         
                                         while go_on_L2:
-                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                            if len(toselectfrom) > 0:
                                                 # select random node from select_L1_hops
-                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                                 select_L2_ID = np.random.choice(
-                                                    range(len(select_L1_hops)),
+                                                    range(len(toselectfrom)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                select_L2 = toselectfrom[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -5870,14 +5884,15 @@ class PubMed_Dataset(Dataset):
                                         go_on_L2 = True
                                         
                                         while go_on_L2:
-                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                            if len(toselectfrom) > 0:
                                                 # select random node from select_L1_hops
-                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                                 select_L2_ID = np.random.choice(
-                                                    range(len(select_L1_hops)),
+                                                    range(len(toselectfrom)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                select_L2 = toselectfrom[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -5999,14 +6014,15 @@ class PubMed_Dataset(Dataset):
                                     go_on_L2 = True
                                     
                                     while go_on_L2:
-                                        if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                        toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                        if len(toselectfrom) > 0:
                                             # select random node from select_L1_hops
-                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                             select_L2_ID = np.random.choice(
-                                                range(len(select_L1_hops)),
+                                                range(len(toselectfrom)),
                                                 p = weights_L2 / np.sum(weights_L2)
                                             )
-                                            select_L2 = select_L1_hops[select_L2_ID]
+                                            select_L2 = toselectfrom[select_L2_ID]
                                             
                                             # check number of L3 hops not in already_idx
                                             select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -6135,14 +6151,15 @@ class PubMed_Dataset(Dataset):
                                         go_on_L2 = True
                                         
                                         while go_on_L2:
-                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                            if len(toselectfrom) > 0:
                                                 # select random node from select_L1_hops
-                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                                 select_L2_ID = np.random.choice(
-                                                    range(len(select_L1_hops)),
+                                                    range(len(toselectfrom)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                select_L2 = toselectfrom[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -6260,14 +6277,15 @@ class PubMed_Dataset(Dataset):
                                         go_on_L2 = True
                                         
                                         while go_on_L2:
-                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                            if len(toselectfrom) > 0:
                                                 # select random node from select_L1_hops
-                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                                 select_L2_ID = np.random.choice(
-                                                    range(len(select_L1_hops)),
+                                                    range(len(toselectfrom)),
                                                     p = weights_L2 / np.sum(weights_L2)
                                                 )
-                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                select_L2 = toselectfrom[select_L2_ID]
                                                 
                                                 # check number of L3 hops not in already_idx
                                                 select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
@@ -6405,14 +6423,15 @@ class PubMed_Dataset(Dataset):
                                     go_on_L2 = True
                                     
                                     while go_on_L2:
-                                        if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                        toselectfrom = [hop for hop in train_L2_undepleted if hop[0] == select_L1]
+                                        if len(toselectfrom) > 0:
                                             # select random node from select_L1_hops
-                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in toselectfrom]
                                             select_L2_ID = np.random.choice(
-                                                range(len(select_L1_hops)),
+                                                range(len(toselectfrom)),
                                                 p = weights_L2 / np.sum(weights_L2)
                                             )
-                                            select_L2 = select_L1_hops[select_L2_ID]
+                                            select_L2 = toselectfrom[select_L2_ID]
                                             
                                             # check number of L3 hops not in already_idx
                                             select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
