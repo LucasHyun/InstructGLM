@@ -6533,7 +6533,8 @@ class PubMed_Dataset(Dataset):
         
         # Add SNS and PinSAGE computations for training mode
         if self.mode == 'train':
-            node_embeds = self.llama_embed.clone().detach()
+            with torch.no_grad():
+                node_embeds = self.llama_embed.clone().detach()
             sns_loss = self.get_sns_loss(node_embeds)
             batch_entry['sns_loss'] = sns_loss
             
