@@ -21,6 +21,9 @@ import copy
 import torch.nn.functional as F  # Add this
 from collections import defaultdict  # Add this
 
+import torch.nn.functional as F
+from torch.nn import CosineSimilarity
+
 
 def load_json(file_path):
     with open(file_path, "r") as f:
@@ -74,6 +77,7 @@ class PubMed_Dataset(Dataset):
         self.llama_embed=load_pickle(os.path.join('PubMed','Llama_embeds.pkl'))  #3
         self.l_max=self.args.max_text_length
         self.real_feature=load_pickle(os.path.join('PubMed','Llama_final_norm_pub_real_feature.pkl')) #4
+        self.node_feature_BERT=load_pickle(os.path.join('PubMed','final_pubmed_node_feature_BERT.pkl')) #4.5
         self.train_L1=load_pickle(os.path.join('PubMed','final_pub_L1.pkl'))  #5
         self.transductive=load_pickle(os.path.join('PubMed','final_pub_transductive.pkl'))  #6 
         #self.transductive=load_pickle(os.path.join('PubMed','small_pub_transductive.pkl'))  #6 
@@ -81,6 +85,8 @@ class PubMed_Dataset(Dataset):
         #self.classification=load_pickle(os.path.join('PubMed','small_pub_classification.pkl'))  #7
         self.node_feature=load_pickle(os.path.join('PubMed','full_final_pubmed_node_feature.pkl'))  #8
 
+        self.cosSim = CosineSimilarity(dim=0)
+        
         LA=[]
         LAA=list(set(self.label_map.values()))
         for laa in tqdm(range(len(LAA))):
@@ -99,6 +105,19 @@ class PubMed_Dataset(Dataset):
         if self.mode=='val':
             self.len_transductive=len(self.transductive)   
 
+    # self._simdeg_dic_calc()
+    def _simdeg_dic_calc(self, point_orig, point_list):
+        return {nodeid : self._sim_calc(point_orig,nodeid) * len(self.train_L1[nodeid]) for nodeid in point_list}
+    
+    def _sim_dic_calc(self, point_orig, point_list):
+        return {nodeid : self._sim_calc(point_orig,nodeid) for nodeid in point_list}
+    
+    def _sim_calc(self,point1, point2):
+        return 1.0 + self.cosSim(
+            self.node_feature_BERT[point1],
+            self.node_feature_BERT[point2]
+        )
+    
      # STEP 3: Add these new methods right after __init__ and before compute_datum_info_train
     def initialize_sns(self):
         """Initialize Supervised Node Similarity components"""
@@ -310,6 +329,8 @@ class PubMed_Dataset(Dataset):
         
         datum_info_idx = self.datum_info[idx]
         assert datum_info_idx[0] == idx
+        
+        
 
         if self.mode=='train':
             if len(datum_info_idx) == 5:
@@ -390,20 +411,26 @@ class PubMed_Dataset(Dataset):
                         count=0
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', '<extra_id_0>')
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
-                        already_idx=[]
+                        
+                        # Added Part
+                        similarity_dic = self._sim_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                        sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
+                    
                         while go_on and count < len(self.train_L1[link_datum[0]]):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
+                            # select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'<extra_id_0>, '
+                            # real_id.append(self.re_id[self.train_L1[link_datum[0]][idx]])
+                            
+                            # Added + Changed Part
+                            selectID = sorted_sim[count][0]
                             node_list=node_list+'<extra_id_0>, '
-                            real_id.append(self.re_id[self.train_L1[link_datum[0]][idx]])
+                            real_id.append(self.re_id[selectID])
 
                             source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', '<extra_id_0>')
-                            
-                            # print(source_text)
-                            # exit()
 
                             count+=1   
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
@@ -426,15 +453,24 @@ class PubMed_Dataset(Dataset):
 
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],'<extra_id_0>', '<extra_id_0>')
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
-                        already_idx=[]
+                        
+                        # Added Part
+                        similarity_dic = self._sim_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                        sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
+                        
                         while go_on and count < len(self.train_L1[link_datum[0]]):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
+                            # select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'<extra_id_0>, '
+                            # real_id.append(self.re_id[self.train_L1[link_datum[0]][idx]])
+                            
+                            # Added + Changed Part
+                            selectID = sorted_sim[count][0]
                             node_list=node_list+'<extra_id_0>, '
-                            real_id.append(self.re_id[self.train_L1[link_datum[0]][idx]])
+                            real_id.append(self.re_id[selectID])
 
                             source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],'<extra_id_0>', '<extra_id_0>')
                             
@@ -462,15 +498,25 @@ class PubMed_Dataset(Dataset):
                     count=0
                     source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],'<extra_id_0>')
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
-                    already_idx=[]
+                    # already_idx=[]
+                    
+                    # Added Part
+                    similarity_dic = self._sim_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                    sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
+                
                     while go_on and count < len(self.train_L1[link_datum[0]]):  
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
+                        # select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
+                        # idx=int(np.random.choice(select,1,replace=False)[0])
+                        # already_idx.append(idx)
+                        # node_list=node_list+'<extra_id_0>, '
+                        # real_id.append(self.re_id[self.train_L1[link_datum[0]][idx]])
+                        
+                        # Added + Changed Part
+                        selectID = sorted_sim[count][0]
                         node_list=node_list+'<extra_id_0>, '
-                        real_id.append(self.re_id[self.train_L1[link_datum[0]][idx]])
+                        real_id.append(self.re_id[selectID])
 
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>')
                             
@@ -537,6 +583,9 @@ class PubMed_Dataset(Dataset):
             
 
             elif task_template['id'] == '1-1-2-1':
+                # Added part
+                simdeg_L1_dict = {}
+                sim_dict = {}
                 
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
@@ -557,20 +606,65 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', '<extra_id_0>')
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                        
                         while go_on and count < len(train_L2):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'<extra_id_0>, '
-                            real_id.append(self.re_id[train_L2[idx][1]])
-
-                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', '<extra_id_0>')
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L1_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops not in already_idx
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                    
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L1_undepleted left, select_L1 will be None
                             
+                            if select_L1 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L1_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                                selectPair = select_L1_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'<extra_id_0>, '
+                                real_id.append(self.re_id[selectPair[1]])
+                                
+                                # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'<extra_id_0>, '
+                                # real_id.append(self.re_id[train_L2[idx][1]])
 
-                            count+=1   
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', '<extra_id_0>')
+                                
+
+                                count+=1   
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -591,20 +685,65 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', '<extra_id_0>')
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                        
                         while go_on and count < len(train_L2):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'<extra_id_0>, '
-                            real_id.append(self.re_id[train_L2[idx][1]])
-
-                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>','<extra_id_0>')
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L1_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops not in already_idx
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                    
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L1_undepleted left, select_L1 will be None
                             
+                            if select_L1 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L1_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                                selectPair = select_L1_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'<extra_id_0>, '
+                                real_id.append(self.re_id[selectPair[1]])
+                                
+                                # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'<extra_id_0>, '
+                                # real_id.append(self.re_id[train_L2[idx][1]])
 
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>','<extra_id_0>')
+                                
+
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -621,6 +760,10 @@ class PubMed_Dataset(Dataset):
 
 
             elif task_template['id'] == '1-1-2-2':
+                # Added part
+                simdeg_L1_dict = {}
+                sim_dict = {}
+                
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     train_L2=[]
@@ -636,21 +779,66 @@ class PubMed_Dataset(Dataset):
                     source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],'<extra_id_0>')
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     already_idx=[]
+                    
+                    #추가한 부분
+                    simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                    train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                    
                     while go_on and count < len(train_L2):  
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-                        node_list=node_list+'<extra_id_0>, '
-                        real_id.append(self.re_id[train_L2[idx][1]])
-
-                        source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>')
+                        #추가한 부분
+                        go_on_L1 = True
+                        select_L1 = None
+                        select_L1_hops = None
+                        while go_on_L1:
+                            if len(train_L1_undepleted) > 0:
+                                # select random node from train_L1_undepleted
+                                weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                select_L1 = np.random.choice(
+                                    train_L1_undepleted,
+                                    p = weights/np.sum(weights)
+                                )
+                                
+                                # check number of L2 hops not in already_idx
+                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                
+                                if len(select_L1_hops) > 0:
+                                    go_on_L1 = False
+                                else:
+                                    train_L1_undepleted.remove(select_L1)
+                                    select_L1 = None
+                            else:
+                                go_on_L1 = False
+                        # At this point, if there is no train_L1_undepleted left, select_L1 will be None
+                        
+                        if select_L1 is None:
+                            go_on = False
+                        else:
+                            for pair in select_L1_hops:
+                                if pair[-1] not in sim_dict:
+                                    sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                            simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                            weights = simlist/np.sum(simlist)
+                            selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                            selectPair = select_L1_hops[selectPairIdx]
                             
+                            already_idx.append(selectPair)
+                            node_list=node_list+'<extra_id_0>, '
+                            real_id.append(self.re_id[selectPair[1]])
+                            
+                            # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'<extra_id_0>, '
+                            # real_id.append(self.re_id[train_L2[idx][1]])
 
-                        count+=1  
+                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>')
+                                
 
-                        go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            count+=1  
+
+                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -665,6 +853,10 @@ class PubMed_Dataset(Dataset):
 
 
             elif task_template['id'] == '1-1-2-3':
+                # Added part
+                simdeg_L1_dict = {}
+                sim_dict = {}
+                
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     id_1,id_2=[],[]
@@ -683,22 +875,69 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], middle_list[:-2],'<extra_id_0>', '<extra_id_0>','<extra_id_0>')
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                        
                         while go_on and count < len(train_L2):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'<extra_id_0>, '
-                            id_1.append(self.re_id[train_L2[idx][1]])
-                            middle_list=middle_list+'<extra_id_0>, '
-                            id_2.append(self.re_id[train_L2[idx][0]])
-
-                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], middle_list[:-2],'<extra_id_0>','<extra_id_0>','<extra_id_0>')
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L1_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops not in already_idx
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                    
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L1_undepleted left, select_L1 will be None
                             
+                            if select_L1 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L1_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                                selectPair = select_L1_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'<extra_id_0>, '
+                                middle_list=middle_list+'<extra_id_0>, '
+                                id_1.append(self.re_id[selectPair[1]])
+                                id_2.append(self.re_id[selectPair[0]])
+                                
+                                # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'<extra_id_0>, '
+                                # id_1.append(self.re_id[train_L2[idx][1]])
+                                # middle_list=middle_list+'<extra_id_0>, '
+                                # id_2.append(self.re_id[train_L2[idx][0]])
 
-                            count+=1   
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], middle_list[:-2],'<extra_id_0>','<extra_id_0>','<extra_id_0>')
+                                
+
+                                count+=1   
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -723,24 +962,71 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2], '<extra_id_0>', '<extra_id_0>','<extra_id_0>')
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                        
                         while go_on and count < len(train_L2):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-
-                            node_list=node_list+'<extra_id_0>, '
-                            id_1.append(self.re_id[train_L2[idx][1]])
-
-                            middle_list=middle_list+'<extra_id_0>, '
-                            id_2.append(self.re_id[train_L2[idx][0]])
-
-                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2],'<extra_id_0>', '<extra_id_0>','<extra_id_0>')
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L1_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops not in already_idx
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                    
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L1_undepleted left, select_L1 will be None
                             
+                            if select_L1 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L1_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                                selectPair = select_L1_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'<extra_id_0>, '
+                                middle_list=middle_list+'<extra_id_0>, '
+                                id_1.append(self.re_id[selectPair[1]])
+                                id_2.append(self.re_id[selectPair[0]])
+                                
+                                # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
 
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                # node_list=node_list+'<extra_id_0>, '
+                                # id_1.append(self.re_id[train_L2[idx][1]])
+
+                                # middle_list=middle_list+'<extra_id_0>, '
+                                # id_2.append(self.re_id[train_L2[idx][0]])
+
+                                source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2],'<extra_id_0>', '<extra_id_0>','<extra_id_0>')
+                                
+
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -758,6 +1044,10 @@ class PubMed_Dataset(Dataset):
                     pass
 
             elif task_template['id'] == '1-1-2-4':
+                # Added part
+                simdeg_L1_dict = {}
+                sim_dict = {}
+                
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     id_1,id_2=[],[]
@@ -775,25 +1065,72 @@ class PubMed_Dataset(Dataset):
                     source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2],'<extra_id_0>','<extra_id_0>')
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     already_idx=[]
+                    
+                    #추가한 부분
+                    simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                    train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                    
                     while go_on and count < len(train_L2): 
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-
-                        node_list=node_list+'<extra_id_0>, '
-                        id_1.append(self.re_id[train_L2[idx][1]])
-
-                        middle_list=middle_list+'<extra_id_0>, '
-                        id_2.append(self.re_id[train_L2[idx][0]])
-
-                        source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2], '<extra_id_0>','<extra_id_0>')
+                        #추가한 부분
+                        go_on_L1 = True
+                        select_L1 = None
+                        select_L1_hops = None
+                        while go_on_L1:
+                            if len(train_L1_undepleted) > 0:
+                                # select random node from train_L1_undepleted
+                                weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                select_L1 = np.random.choice(
+                                    train_L1_undepleted,
+                                    p = weights/np.sum(weights)
+                                )
+                                
+                                # check number of L2 hops not in already_idx
+                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                
+                                if len(select_L1_hops) > 0:
+                                    go_on_L1 = False
+                                else:
+                                    train_L1_undepleted.remove(select_L1)
+                                    select_L1 = None
+                            else:
+                                go_on_L1 = False
+                        # At this point, if there is no train_L1_undepleted left, select_L1 will be None
+                        
+                        if select_L1 is None:
+                            go_on = False
+                        else:
+                            for pair in select_L1_hops:
+                                if pair[-1] not in sim_dict:
+                                    sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                            simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                            weights = simlist/np.sum(simlist)
+                            selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                            selectPair = select_L1_hops[selectPairIdx]
                             
+                            already_idx.append(selectPair)
+                            node_list=node_list+'<extra_id_0>, '
+                            middle_list=middle_list+'<extra_id_0>, '
+                            id_1.append(self.re_id[selectPair[1]])
+                            id_2.append(self.re_id[selectPair[0]])
+                            
+                            # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
 
-                        count+=1  
+                            # node_list=node_list+'<extra_id_0>, '
+                            # id_1.append(self.re_id[train_L2[idx][1]])
 
-                        go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            # middle_list=middle_list+'<extra_id_0>, '
+                            # id_2.append(self.re_id[train_L2[idx][0]])
+
+                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2], '<extra_id_0>','<extra_id_0>')
+                                
+
+                            count+=1  
+
+                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -810,6 +1147,11 @@ class PubMed_Dataset(Dataset):
                     pass
 
             elif task_template['id'] == '1-1-3-1':
+                # Added part
+                simdeg_L1_dict = {}
+                simdeg_L2_dict = {}
+                sim_dict = {}
+                
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     train_L2=[]
@@ -834,20 +1176,98 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],'<extra_id_0>','<extra_id_0>')
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0], self.train_L1[link_datum[0]])
+                        L2_set = list(set([i[1] for i in train_L2]))
+                        simdeg_L2_dict = self._simdeg_dic_calc(link_datum[0], L2_set)
+                        
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                        train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                        
                         while go_on and count < len(train_L3):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'<extra_id_0>, '
-                            real_id.append(self.re_id[train_L3[idx][2]])
-
-                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', '<extra_id_0>')
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L2 = None
+                            select_L1_hops = None
+                            select_L2_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops in train_L2_undepleted
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    
+                                    # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L2 = True
+                                        
+                                        while go_on_L2:
+                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                                # select random node from select_L1_hops
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                select_L2_ID = np.random.choice(
+                                                    range(len(select_L1_hops)),
+                                                    p = weights_L2 / np.sum(weights_L2)
+                                                )
+                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                
+                                                # check number of L3 hops not in already_idx
+                                                select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                                
+                                                if len(select_L2_hops) > 0:
+                                                    go_on_L2 = False
+                                                else:
+                                                    train_L2_undepleted.remove(select_L2)
+                                                    select_L2 = None
+                                            else:
+                                                go_on_L2 = False
+                                                
+                                        if select_L2 is None:
+                                            train_L1_undepleted.remove(select_L1)
+                                            select_L1 = None
+                                        else:
+                                            go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L2_undepleted left, select_L2 will be None
                             
+                            if select_L2 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L2_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                                selectPair = select_L2_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'<extra_id_0>, '
+                                real_id.append(self.re_id[selectPair[2]])
+                                
+                                # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'<extra_id_0>, '
+                                # real_id.append(self.re_id[train_L3[idx][2]])
 
-                            count+=1   
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', '<extra_id_0>')
+                                
+
+                                count+=1   
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -869,20 +1289,98 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', '<extra_id_0>')
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0], self.train_L1[link_datum[0]])
+                        L2_set = list(set([i[1] for i in train_L2]))
+                        simdeg_L2_dict = self._simdeg_dic_calc(link_datum[0], L2_set)
+                        
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                        train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                        
                         while go_on and count < len(train_L3): 
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'<extra_id_0>, '
-                            real_id.append(self.re_id[train_L3[idx][2]])
-
-                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', '<extra_id_0>')
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L2 = None
+                            select_L1_hops = None
+                            select_L2_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops in train_L2_undepleted
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    
+                                    # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L2 = True
+                                        
+                                        while go_on_L2:
+                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                                # select random node from select_L1_hops
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                select_L2_ID = np.random.choice(
+                                                    range(len(select_L1_hops)),
+                                                    p = weights_L2 / np.sum(weights_L2)
+                                                )
+                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                
+                                                # check number of L3 hops not in already_idx
+                                                select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                                
+                                                if len(select_L2_hops) > 0:
+                                                    go_on_L2 = False
+                                                else:
+                                                    train_L2_undepleted.remove(select_L2)
+                                                    select_L2 = None
+                                            else:
+                                                go_on_L2 = False
+                                                
+                                        if select_L2 is None:
+                                            train_L1_undepleted.remove(select_L1)
+                                            select_L1 = None
+                                        else:
+                                            go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L2_undepleted left, select_L2 will be None
                             
+                            if select_L2 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L2_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                                selectPair = select_L2_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'<extra_id_0>, '
+                                real_id.append(self.re_id[selectPair[2]])
+                                
+                                # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'<extra_id_0>, '
+                                # real_id.append(self.re_id[train_L3[idx][2]])
 
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', '<extra_id_0>')
+                                
+
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -896,6 +1394,11 @@ class PubMed_Dataset(Dataset):
                     pass
 
             elif task_template['id'] == '1-1-3-2':
+                # Added part
+                simdeg_L1_dict = {}
+                simdeg_L2_dict = {}
+                sim_dict = {}
+                
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     train_L2=[]
@@ -918,21 +1421,99 @@ class PubMed_Dataset(Dataset):
                     source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],'<extra_id_0>')
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     already_idx=[]
+                    
+                    #추가한 부분
+                    simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0], self.train_L1[link_datum[0]])
+                    L2_set = list(set([i[1] for i in train_L2]))
+                    simdeg_L2_dict = self._simdeg_dic_calc(link_datum[0], L2_set)
+                    
+                    train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                    train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                    
                     while go_on and count < len(train_L3):  
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-                        node_list=node_list+'<extra_id_0>, '
-                        real_id.append(self.re_id[train_L3[idx][2]])
-
-                        source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>')
+                        #추가한 부분
+                        go_on_L1 = True
+                        select_L1 = None
+                        select_L2 = None
+                        select_L1_hops = None
+                        select_L2_hops = None
+                        while go_on_L1:
+                            if len(train_L1_undepleted) > 0:
+                                # select random node from train_L1_undepleted
+                                weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                select_L1 = np.random.choice(
+                                    train_L1_undepleted,
+                                    p = weights/np.sum(weights)
+                                )
+                                
+                                # check number of L2 hops in train_L2_undepleted
+                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                
+                                # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                if len(select_L1_hops) > 0:
+                                    go_on_L2 = True
+                                    
+                                    while go_on_L2:
+                                        if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            # select random node from select_L1_hops
+                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                            select_L2_ID = np.random.choice(
+                                                range(len(select_L1_hops)),
+                                                p = weights_L2 / np.sum(weights_L2)
+                                            )
+                                            select_L2 = select_L1_hops[select_L2_ID]
+                                            
+                                            # check number of L3 hops not in already_idx
+                                            select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                            
+                                            if len(select_L2_hops) > 0:
+                                                go_on_L2 = False
+                                            else:
+                                                train_L2_undepleted.remove(select_L2)
+                                                select_L2 = None
+                                        else:
+                                            go_on_L2 = False
+                                            
+                                    if select_L2 is None:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                    else:
+                                        go_on_L1 = False
+                                else:
+                                    train_L1_undepleted.remove(select_L1)
+                            else:
+                                go_on_L1 = False
+                        # At this point, if there is no train_L2_undepleted left, select_L2 will be None
+                        
+                        if select_L2 is None:
+                            go_on = False
+                        else:
+                            for pair in select_L2_hops:
+                                if pair[-1] not in sim_dict:
+                                    sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                            simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                            weights = simlist/np.sum(simlist)
+                            selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                            selectPair = select_L2_hops[selectPairIdx]
                             
+                            already_idx.append(selectPair)
+                            node_list=node_list+'<extra_id_0>, '
+                            real_id.append(self.re_id[selectPair[2]])
+                            
+                            # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'<extra_id_0>, '
+                            # real_id.append(self.re_id[train_L3[idx][2]])
 
-                        count+=1  
+                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>')
+                                
 
-                        go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            count+=1  
+
+                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -947,6 +1528,11 @@ class PubMed_Dataset(Dataset):
                     pass
 
             elif task_template['id'] == '1-1-3-3':
+                # Added part
+                simdeg_L1_dict = {}
+                simdeg_L2_dict = {}
+                sim_dict = {}
+                
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     id_1,id_2=[],[]
@@ -974,24 +1560,106 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], middle_list[:-2],'<extra_id_0>', '<extra_id_0>','(<extra_id_0>,<extra_id_0>)')
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0], self.train_L1[link_datum[0]])
+                        L2_set = list(set([i[1] for i in train_L2]))
+                        simdeg_L2_dict = self._simdeg_dic_calc(link_datum[0], L2_set)
+                        
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                        train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                        
                         while go_on and count < len(train_L3):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-
-                            node_list=node_list+'<extra_id_0>, '
-                            id_1.append(self.re_id[train_L3[idx][2]])
-                            middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
-                            id_2.append(self.re_id[train_L3[idx][0]])
-                            id_2.append(self.re_id[train_L3[idx][1]])
-
-                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], middle_list[:-2],'<extra_id_0>', '<extra_id_0>','(<extra_id_0>,<extra_id_0>)')
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L2 = None
+                            select_L1_hops = None
+                            select_L2_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops in train_L2_undepleted
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    
+                                    # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L2 = True
+                                        
+                                        while go_on_L2:
+                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                                # select random node from select_L1_hops
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                select_L2_ID = np.random.choice(
+                                                    range(len(select_L1_hops)),
+                                                    p = weights_L2 / np.sum(weights_L2)
+                                                )
+                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                
+                                                # check number of L3 hops not in already_idx
+                                                select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                                
+                                                if len(select_L2_hops) > 0:
+                                                    go_on_L2 = False
+                                                else:
+                                                    train_L2_undepleted.remove(select_L2)
+                                                    select_L2 = None
+                                            else:
+                                                go_on_L2 = False
+                                                
+                                        if select_L2 is None:
+                                            train_L1_undepleted.remove(select_L1)
+                                            select_L1 = None
+                                        else:
+                                            go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L2_undepleted left, select_L2 will be None
                             
+                            if select_L2 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L2_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                                selectPair = select_L2_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                
+                                node_list=node_list+'<extra_id_0>, '
+                                middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
+                                id_1.append(self.re_id[selectPair[2]])
+                                id_2.append(self.re_id[selectPair[0]])
+                                id_2.append(self.re_id[selectPair[1]])
+                                
+                                # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
 
-                            count+=1   
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                # node_list=node_list+'<extra_id_0>, '
+                                # id_1.append(self.re_id[train_L3[idx][2]])
+                                # middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
+                                # id_2.append(self.re_id[train_L3[idx][0]])
+                                # id_2.append(self.re_id[train_L3[idx][1]])
+
+                                source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2], middle_list[:-2],'<extra_id_0>', '<extra_id_0>','(<extra_id_0>,<extra_id_0>)')
+                                
+
+                                count+=1   
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -1019,24 +1687,106 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2],'<extra_id_0>', '<extra_id_0>','(<extra_id_0>,<extra_id_0>)')
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0], self.train_L1[link_datum[0]])
+                        L2_set = list(set([i[1] for i in train_L2]))
+                        simdeg_L2_dict = self._simdeg_dic_calc(link_datum[0], L2_set)
+                        
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                        train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                        
                         while go_on and count < len(train_L3):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-
-                            node_list=node_list+'<extra_id_0>, '
-                            id_1.append(self.re_id[train_L3[idx][2]])
-                            middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
-                            id_2.append(self.re_id[train_L3[idx][0]])
-                            id_2.append(self.re_id[train_L3[idx][1]])
-
-                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2],'<extra_id_0>', '<extra_id_0>','(<extra_id_0>,<extra_id_0>)')
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L2 = None
+                            select_L1_hops = None
+                            select_L2_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops in train_L2_undepleted
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    
+                                    # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L2 = True
+                                        
+                                        while go_on_L2:
+                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                                # select random node from select_L1_hops
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                select_L2_ID = np.random.choice(
+                                                    range(len(select_L1_hops)),
+                                                    p = weights_L2 / np.sum(weights_L2)
+                                                )
+                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                
+                                                # check number of L3 hops not in already_idx
+                                                select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                                
+                                                if len(select_L2_hops) > 0:
+                                                    go_on_L2 = False
+                                                else:
+                                                    train_L2_undepleted.remove(select_L2)
+                                                    select_L2 = None
+                                            else:
+                                                go_on_L2 = False
+                                                
+                                        if select_L2 is None:
+                                            train_L1_undepleted.remove(select_L1)
+                                            select_L1 = None
+                                        else:
+                                            go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L2_undepleted left, select_L2 will be None
                             
+                            if select_L2 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L2_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                                selectPair = select_L2_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                
+                                node_list=node_list+'<extra_id_0>, '
+                                middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
+                                id_1.append(self.re_id[selectPair[2]])
+                                id_2.append(self.re_id[selectPair[0]])
+                                id_2.append(self.re_id[selectPair[1]])
+                                
+                                # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
 
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                # node_list=node_list+'<extra_id_0>, '
+                                # id_1.append(self.re_id[train_L3[idx][2]])
+                                # middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
+                                # id_2.append(self.re_id[train_L3[idx][0]])
+                                # id_2.append(self.re_id[train_L3[idx][1]])
+
+                                source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2],'<extra_id_0>', '<extra_id_0>','(<extra_id_0>,<extra_id_0>)')
+                                
+
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -1055,6 +1805,11 @@ class PubMed_Dataset(Dataset):
                 elif self.mode=='val':   
                     pass
             elif task_template['id'] == '1-1-3-4': 
+                # Added part
+                simdeg_L1_dict = {}
+                simdeg_L2_dict = {}
+                sim_dict = {}
+                
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     id_1,id_2=[],[]
@@ -1079,24 +1834,106 @@ class PubMed_Dataset(Dataset):
                     source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2],'<extra_id_0>','(<extra_id_0>,<extra_id_0>)')
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     already_idx=[]
+                    
+                    #추가한 부분
+                    simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0], self.train_L1[link_datum[0]])
+                    L2_set = list(set([i[1] for i in train_L2]))
+                    simdeg_L2_dict = self._simdeg_dic_calc(link_datum[0], L2_set)
+                    
+                    train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                    train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                    
                     while go_on and count < len(train_L3):  
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-                        node_list=node_list+'<extra_id_0>, '
-                        id_1.append(self.re_id[train_L3[idx][2]])
-                        middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
-                        id_2.append(self.re_id[train_L3[idx][0]])
-                        id_2.append(self.re_id[train_L3[idx][1]])
-
-                        source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2], '<extra_id_0>','(<extra_id_0>,<extra_id_0>)')
+                        #추가한 부분
+                        go_on_L1 = True
+                        select_L1 = None
+                        select_L2 = None
+                        select_L1_hops = None
+                        select_L2_hops = None
+                        while go_on_L1:
+                            if len(train_L1_undepleted) > 0:
+                                # select random node from train_L1_undepleted
+                                weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                select_L1 = np.random.choice(
+                                    train_L1_undepleted,
+                                    p = weights/np.sum(weights)
+                                )
+                                
+                                # check number of L2 hops in train_L2_undepleted
+                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                
+                                # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                if len(select_L1_hops) > 0:
+                                    go_on_L2 = True
+                                    
+                                    while go_on_L2:
+                                        if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            # select random node from select_L1_hops
+                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                            select_L2_ID = np.random.choice(
+                                                range(len(select_L1_hops)),
+                                                p = weights_L2 / np.sum(weights_L2)
+                                            )
+                                            select_L2 = select_L1_hops[select_L2_ID]
+                                            
+                                            # check number of L3 hops not in already_idx
+                                            select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                            
+                                            if len(select_L2_hops) > 0:
+                                                go_on_L2 = False
+                                            else:
+                                                train_L2_undepleted.remove(select_L2)
+                                                select_L2 = None
+                                        else:
+                                            go_on_L2 = False
+                                            
+                                    if select_L2 is None:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                    else:
+                                        go_on_L1 = False
+                                else:
+                                    train_L1_undepleted.remove(select_L1)
+                            else:
+                                go_on_L1 = False
+                        # At this point, if there is no train_L2_undepleted left, select_L2 will be None
+                        
+                        if select_L2 is None:
+                            go_on = False
+                        else:
+                            for pair in select_L2_hops:
+                                if pair[-1] not in sim_dict:
+                                    sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                            simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                            weights = simlist/np.sum(simlist)
+                            selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                            selectPair = select_L2_hops[selectPairIdx]
                             
+                            already_idx.append(selectPair)
+                            
+                            node_list=node_list+'<extra_id_0>, '
+                            middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
+                            id_1.append(self.re_id[selectPair[2]])
+                            id_2.append(self.re_id[selectPair[0]])
+                            id_2.append(self.re_id[selectPair[1]])
+                            
+                            # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'<extra_id_0>, '
+                            # id_1.append(self.re_id[train_L3[idx][2]])
+                            # middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
+                            # id_2.append(self.re_id[train_L3[idx][0]])
+                            # id_2.append(self.re_id[train_L3[idx][1]])
 
-                        count+=1  
+                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2], '<extra_id_0>','(<extra_id_0>,<extra_id_0>)')
+                                
 
-                        go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            count+=1  
+
+                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -1127,15 +1964,25 @@ class PubMed_Dataset(Dataset):
                         count=0
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], '<extra_id_0>',self.node_feature[link_datum[1]][0], '<extra_id_0>',self.node_feature[link_datum[0]][0])
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
-                        already_idx=[]
+                        # already_idx=[]
+                        
+                        # Added Part
+                        similarity_dic = self._sim_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                        sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
+                        
                         while go_on and count < len(self.train_L1[link_datum[0]]):  
                             temp_text=source_text  
 
-                            select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[self.train_L1[link_datum[0]][idx]][0])
-                            real_id.append(self.re_id[self.train_L1[link_datum[0]][idx]])
+                            # select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[self.train_L1[link_datum[0]][idx]][0])
+                            # real_id.append(self.re_id[self.train_L1[link_datum[0]][idx]])
+                            
+                            # Added + Changed Part
+                            selectID = sorted_sim[count][0]
+                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectID][0])
+                            real_id.append(self.re_id[selectID])
 
                             source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], '<extra_id_0>',self.node_feature[link_datum[1]][0], '<extra_id_0>',self.node_feature[link_datum[0]][0])
                             
@@ -1162,16 +2009,26 @@ class PubMed_Dataset(Dataset):
 
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2],'<extra_id_0>',self.node_feature[negative][0], '<extra_id_0>',self.node_feature[link_datum[0]][0])
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
-                        already_idx=[]
+                        # already_idx=[]
+                        
+                        # Added Part
+                        similarity_dic = self._sim_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                        sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
+                        
                         while go_on and count < len(self.train_L1[link_datum[0]]):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[self.train_L1[link_datum[0]][idx]][0])
-                            real_id.append(self.re_id[self.train_L1[link_datum[0]][idx]])
-
+                            # select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[self.train_L1[link_datum[0]][idx]][0])
+                            # real_id.append(self.re_id[self.train_L1[link_datum[0]][idx]])
+                            
+                            # Added + Changed Part
+                            selectID = sorted_sim[count][0]
+                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectID][0])
+                            real_id.append(self.re_id[selectID])
+                            
                             source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2],'<extra_id_0>',self.node_feature[negative][0], '<extra_id_0>',self.node_feature[link_datum[0]][0])
                             
 
@@ -1198,15 +2055,25 @@ class PubMed_Dataset(Dataset):
                     count=0
                     source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2],'<extra_id_0>',self.node_feature[link_datum[0]][0])
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
-                    already_idx=[]
+                    # already_idx=[]
+                    
+                    # Added Part
+                    similarity_dic = self._sim_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                    sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
+                    
                     while go_on and count < len(self.train_L1[link_datum[0]]):  
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-                        node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[self.train_L1[link_datum[0]][idx]][0])
-                        real_id.append(self.re_id[self.train_L1[link_datum[0]][idx]])
+                        # select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
+                        # idx=int(np.random.choice(select,1,replace=False)[0])
+                        # already_idx.append(idx)
+                        # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[self.train_L1[link_datum[0]][idx]][0])
+                        # real_id.append(self.re_id[self.train_L1[link_datum[0]][idx]])
+
+                        # Added + Changed Part
+                        selectID = sorted_sim[count][0]
+                        node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectID][0])
+                        real_id.append(self.re_id[selectID])
 
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], '<extra_id_0>',self.node_feature[link_datum[0]][0])
                             
@@ -1228,6 +2095,9 @@ class PubMed_Dataset(Dataset):
 
 
             elif task_template['id'] == '1-3-2-1':
+                # Added part
+                simdeg_L1_dict = {}
+                sim_dict = {}
                 
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
@@ -1248,20 +2118,65 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], '<extra_id_0>',self.node_feature[link_datum[2]][0], '<extra_id_0>',self.node_feature[link_datum[0]][0])
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                        
                         while go_on and count < len(train_L2):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
-                            real_id.append(self.re_id[train_L2[idx][1]])
-
-                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], '<extra_id_0>',self.node_feature[link_datum[2]][0], '<extra_id_0>',self.node_feature[link_datum[0]][0])
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L1_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops not in already_idx
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                    
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L1_undepleted left, select_L1 will be None
                             
+                            if select_L1 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L1_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                                selectPair = select_L1_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[1]][0])
+                                real_id.append(self.re_id[selectPair[1]])
+                                
+                                # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
+                                # real_id.append(self.re_id[train_L2[idx][1]])
 
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], '<extra_id_0>',self.node_feature[link_datum[2]][0], '<extra_id_0>',self.node_feature[link_datum[0]][0])
+                                
+
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -1282,20 +2197,65 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], '<extra_id_0>',self.node_feature[negative][0], '<extra_id_0>',self.node_feature[link_datum[0]][0])
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                        
                         while go_on and count < len(train_L2):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
-                            real_id.append(self.re_id[train_L2[idx][1]])
-
-                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], '<extra_id_0>',self.node_feature[negative][0], '<extra_id_0>',self.node_feature[link_datum[0]][0])
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L1_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops not in already_idx
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                    
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L1_undepleted left, select_L1 will be None
                             
+                            if select_L1 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L1_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                                selectPair = select_L1_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[1]][0])
+                                real_id.append(self.re_id[selectPair[1]])
+                                
+                                # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
+                                # real_id.append(self.re_id[train_L2[idx][1]])
 
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], '<extra_id_0>',self.node_feature[negative][0], '<extra_id_0>',self.node_feature[link_datum[0]][0])
+                                
+
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -1312,6 +2272,10 @@ class PubMed_Dataset(Dataset):
 
 
             elif task_template['id'] == '1-3-2-2':
+                # Added part
+                simdeg_L1_dict = {}
+                sim_dict = {}
+                
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     train_L2=[]
@@ -1327,21 +2291,66 @@ class PubMed_Dataset(Dataset):
                     source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], '<extra_id_0>',self.node_feature[link_datum[0]][0])
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     already_idx=[]
+                    
+                    #추가한 부분
+                    simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                    train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                    
                     while go_on and count < len(train_L2):  
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-                        node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
-                        real_id.append(self.re_id[train_L2[idx][1]])
-
-                        source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], '<extra_id_0>',self.node_feature[link_datum[0]][0])
+                        #추가한 부분
+                        go_on_L1 = True
+                        select_L1 = None
+                        select_L1_hops = None
+                        while go_on_L1:
+                            if len(train_L1_undepleted) > 0:
+                                # select random node from train_L1_undepleted
+                                weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                select_L1 = np.random.choice(
+                                    train_L1_undepleted,
+                                    p = weights/np.sum(weights)
+                                )
+                                
+                                # check number of L2 hops not in already_idx
+                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                
+                                if len(select_L1_hops) > 0:
+                                    go_on_L1 = False
+                                else:
+                                    train_L1_undepleted.remove(select_L1)
+                                    select_L1 = None
+                            else:
+                                go_on_L1 = False
+                        # At this point, if there is no train_L1_undepleted left, select_L1 will be None
+                        
+                        if select_L1 is None:
+                            go_on = False
+                        else:
+                            for pair in select_L1_hops:
+                                if pair[-1] not in sim_dict:
+                                    sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                            simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                            weights = simlist/np.sum(simlist)
+                            selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                            selectPair = select_L1_hops[selectPairIdx]
                             
+                            already_idx.append(selectPair)
+                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[1]][0])
+                            real_id.append(self.re_id[selectPair[1]])
+                            
+                            # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
+                            # real_id.append(self.re_id[train_L2[idx][1]])
 
-                        count+=1  
+                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], '<extra_id_0>',self.node_feature[link_datum[0]][0])
+                                
 
-                        go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            count+=1  
+
+                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -1356,6 +2365,10 @@ class PubMed_Dataset(Dataset):
 
 
             elif task_template['id'] == '1-3-2-3':
+                # Added part
+                simdeg_L1_dict = {}
+                sim_dict = {}
+                
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     id_1,id_2=[],[]
@@ -1374,24 +2387,71 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], middle_list[:-2],'<extra_id_0>',self.node_feature[link_datum[2]][0], '<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0])
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                        
                         while go_on and count < len(train_L2):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
-                            id_1.append(self.re_id[train_L2[idx][1]])
-
-                            middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][0]][0])
-                            id_2.append(self.re_id[train_L2[idx][0]])
-
-                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], middle_list[:-2],'<extra_id_0>',self.node_feature[link_datum[2]][0], '<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0])
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L1_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops not in already_idx
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                    
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L1_undepleted left, select_L1 will be None
                             
+                            if select_L1 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L1_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                                selectPair = select_L1_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[1]][0])
+                                middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0])
+                                id_1.append(self.re_id[selectPair[1]])
+                                id_2.append(self.re_id[selectPair[0]])
+                                
+                                # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
 
-                            count+=1   
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
+                                # id_1.append(self.re_id[train_L2[idx][1]])
+
+                                # middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][0]][0])
+                                # id_2.append(self.re_id[train_L2[idx][0]])
+
+                                source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], middle_list[:-2],'<extra_id_0>',self.node_feature[link_datum[2]][0], '<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0])
+                                
+
+                                count+=1   
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -1417,22 +2477,69 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], middle_list[:-2],'<extra_id_0>',self.node_feature[negative][0], '<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0])
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                        
                         while go_on and count < len(train_L2):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
-                            id_1.append(self.re_id[train_L2[idx][1]])
-                            middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][0]][0])
-                            id_2.append(self.re_id[train_L2[idx][0]])
-
-                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], middle_list[:-2],'<extra_id_0>',self.node_feature[negative][0], '<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0])
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L1_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops not in already_idx
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                    
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L1_undepleted left, select_L1 will be None
                             
+                            if select_L1 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L1_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                                selectPair = select_L1_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[1]][0])
+                                middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0])
+                                id_1.append(self.re_id[selectPair[1]])
+                                id_2.append(self.re_id[selectPair[0]])
+                                
+                                # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
+                                # id_1.append(self.re_id[train_L2[idx][1]])
+                                # middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][0]][0])
+                                # id_2.append(self.re_id[train_L2[idx][0]])
 
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], middle_list[:-2],'<extra_id_0>',self.node_feature[negative][0], '<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0])
+                                
+
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -1450,6 +2557,10 @@ class PubMed_Dataset(Dataset):
                     pass
 
             elif task_template['id'] == '1-3-2-4':
+                # Added part
+                simdeg_L1_dict = {}
+                sim_dict = {}
+                
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     id_1,id_2=[],[]
@@ -1467,25 +2578,72 @@ class PubMed_Dataset(Dataset):
                     source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2],middle_list[:-2],'<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0])
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     already_idx=[]
+                    
+                    #추가한 부분
+                    simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
+                    train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                    
                     while go_on and count < len(train_L2):  
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-
-                        node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
-                        id_1.append(self.re_id[train_L2[idx][1]])
-
-                        middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][0]][0])
-                        id_2.append(self.re_id[train_L2[idx][0]])
-
-                        source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2],middle_list[:-2],'<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0])
+                        #추가한 부분
+                        go_on_L1 = True
+                        select_L1 = None
+                        select_L1_hops = None
+                        while go_on_L1:
+                            if len(train_L1_undepleted) > 0:
+                                # select random node from train_L1_undepleted
+                                weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                select_L1 = np.random.choice(
+                                    train_L1_undepleted,
+                                    p = weights/np.sum(weights)
+                                )
+                                
+                                # check number of L2 hops not in already_idx
+                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                
+                                if len(select_L1_hops) > 0:
+                                    go_on_L1 = False
+                                else:
+                                    train_L1_undepleted.remove(select_L1)
+                                    select_L1 = None
+                            else:
+                                go_on_L1 = False
+                        # At this point, if there is no train_L1_undepleted left, select_L1 will be None
+                        
+                        if select_L1 is None:
+                            go_on = False
+                        else:
+                            for pair in select_L1_hops:
+                                if pair[-1] not in sim_dict:
+                                    sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                            simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                            weights = simlist/np.sum(simlist)
+                            selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                            selectPair = select_L1_hops[selectPairIdx]
                             
+                            already_idx.append(selectPair)
+                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[1]][0])
+                            middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0])
+                            id_1.append(self.re_id[selectPair[1]])
+                            id_2.append(self.re_id[selectPair[0]])
+                            
+                            # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
 
-                        count+=1  
+                            # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
+                            # id_1.append(self.re_id[train_L2[idx][1]])
 
-                        go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            # middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][0]][0])
+                            # id_2.append(self.re_id[train_L2[idx][0]])
+
+                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2],middle_list[:-2],'<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0])
+                                
+
+                            count+=1  
+
+                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -1502,6 +2660,11 @@ class PubMed_Dataset(Dataset):
                     pass
 
             elif task_template['id'] == '1-3-3-1':
+                # Added part
+                simdeg_L1_dict = {}
+                simdeg_L2_dict = {}
+                sim_dict = {}
+                
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     train_L2=[]
@@ -1526,20 +2689,98 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2],'<extra_id_0>',self.node_feature[link_datum[3]][0],'<extra_id_0>',self.node_feature[link_datum[0]][0])
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0], self.train_L1[link_datum[0]])
+                        L2_set = list(set([i[1] for i in train_L2]))
+                        simdeg_L2_dict = self._simdeg_dic_calc(link_datum[0], L2_set)
+                        
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                        train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                        
                         while go_on and count < len(train_L3): 
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
-                            real_id.append(self.re_id[train_L3[idx][2]])
-
-                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2],'<extra_id_0>',self.node_feature[link_datum[3]][0],'<extra_id_0>',self.node_feature[link_datum[0]][0])
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L2 = None
+                            select_L1_hops = None
+                            select_L2_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops in train_L2_undepleted
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    
+                                    # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L2 = True
+                                        
+                                        while go_on_L2:
+                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                                # select random node from select_L1_hops
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                select_L2_ID = np.random.choice(
+                                                    range(len(select_L1_hops)),
+                                                    p = weights_L2 / np.sum(weights_L2)
+                                                )
+                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                
+                                                # check number of L3 hops not in already_idx
+                                                select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                                
+                                                if len(select_L2_hops) > 0:
+                                                    go_on_L2 = False
+                                                else:
+                                                    train_L2_undepleted.remove(select_L2)
+                                                    select_L2 = None
+                                            else:
+                                                go_on_L2 = False
+                                                
+                                        if select_L2 is None:
+                                            train_L1_undepleted.remove(select_L1)
+                                            select_L1 = None
+                                        else:
+                                            go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L2_undepleted left, select_L2 will be None
                             
+                            if select_L2 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L2_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                                selectPair = select_L2_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[2]][0])
+                                real_id.append(self.re_id[selectPair[2]])
+                                
+                                # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
+                                # real_id.append(self.re_id[train_L3[idx][2]])
 
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2],'<extra_id_0>',self.node_feature[link_datum[3]][0],'<extra_id_0>',self.node_feature[link_datum[0]][0])
+                                
+
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -1560,20 +2801,98 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2],'<extra_id_0>',self.node_feature[negative][0],'<extra_id_0>',self.node_feature[link_datum[0]][0])
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0], self.train_L1[link_datum[0]])
+                        L2_set = list(set([i[1] for i in train_L2]))
+                        simdeg_L2_dict = self._simdeg_dic_calc(link_datum[0], L2_set)
+                        
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                        train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                        
                         while go_on and count < len(train_L3):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
-                            real_id.append(self.re_id[train_L3[idx][2]])
-
-                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2],'<extra_id_0>',self.node_feature[negative][0],'<extra_id_0>',self.node_feature[link_datum[0]][0])
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L2 = None
+                            select_L1_hops = None
+                            select_L2_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops in train_L2_undepleted
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    
+                                    # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L2 = True
+                                        
+                                        while go_on_L2:
+                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                                # select random node from select_L1_hops
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                select_L2_ID = np.random.choice(
+                                                    range(len(select_L1_hops)),
+                                                    p = weights_L2 / np.sum(weights_L2)
+                                                )
+                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                
+                                                # check number of L3 hops not in already_idx
+                                                select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                                
+                                                if len(select_L2_hops) > 0:
+                                                    go_on_L2 = False
+                                                else:
+                                                    train_L2_undepleted.remove(select_L2)
+                                                    select_L2 = None
+                                            else:
+                                                go_on_L2 = False
+                                                
+                                        if select_L2 is None:
+                                            train_L1_undepleted.remove(select_L1)
+                                            select_L1 = None
+                                        else:
+                                            go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L2_undepleted left, select_L2 will be None
                             
+                            if select_L2 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L2_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                                selectPair = select_L2_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[2]][0])
+                                real_id.append(self.re_id[selectPair[2]])
+                                
+                                # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
+                                # real_id.append(self.re_id[train_L3[idx][2]])
 
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2],'<extra_id_0>',self.node_feature[negative][0],'<extra_id_0>',self.node_feature[link_datum[0]][0])
+                                
+
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -1587,6 +2906,11 @@ class PubMed_Dataset(Dataset):
                     pass
 
             elif task_template['id'] == '1-3-3-2':
+                # Added part
+                simdeg_L1_dict = {}
+                simdeg_L2_dict = {}
+                sim_dict = {}
+                
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     train_L2=[]
@@ -1609,21 +2933,99 @@ class PubMed_Dataset(Dataset):
                     source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2],'<extra_id_0>',self.node_feature[link_datum[0]][0])
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     already_idx=[]
+                    
+                    #추가한 부분
+                    simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0], self.train_L1[link_datum[0]])
+                    L2_set = list(set([i[1] for i in train_L2]))
+                    simdeg_L2_dict = self._simdeg_dic_calc(link_datum[0], L2_set)
+                    
+                    train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                    train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                    
                     while go_on and count < len(train_L3):  
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-                        node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
-                        real_id.append(self.re_id[train_L3[idx][2]])
-
-                        source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], '<extra_id_0>',self.node_feature[link_datum[0]][0])
+                        #추가한 부분
+                        go_on_L1 = True
+                        select_L1 = None
+                        select_L2 = None
+                        select_L1_hops = None
+                        select_L2_hops = None
+                        while go_on_L1:
+                            if len(train_L1_undepleted) > 0:
+                                # select random node from train_L1_undepleted
+                                weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                select_L1 = np.random.choice(
+                                    train_L1_undepleted,
+                                    p = weights/np.sum(weights)
+                                )
+                                
+                                # check number of L2 hops in train_L2_undepleted
+                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                
+                                # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                if len(select_L1_hops) > 0:
+                                    go_on_L2 = True
+                                    
+                                    while go_on_L2:
+                                        if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            # select random node from select_L1_hops
+                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                            select_L2_ID = np.random.choice(
+                                                range(len(select_L1_hops)),
+                                                p = weights_L2 / np.sum(weights_L2)
+                                            )
+                                            select_L2 = select_L1_hops[select_L2_ID]
+                                            
+                                            # check number of L3 hops not in already_idx
+                                            select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                            
+                                            if len(select_L2_hops) > 0:
+                                                go_on_L2 = False
+                                            else:
+                                                train_L2_undepleted.remove(select_L2)
+                                                select_L2 = None
+                                        else:
+                                            go_on_L2 = False
+                                            
+                                    if select_L2 is None:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                    else:
+                                        go_on_L1 = False
+                                else:
+                                    train_L1_undepleted.remove(select_L1)
+                            else:
+                                go_on_L1 = False
+                        # At this point, if there is no train_L2_undepleted left, select_L2 will be None
+                        
+                        if select_L2 is None:
+                            go_on = False
+                        else:
+                            for pair in select_L2_hops:
+                                if pair[-1] not in sim_dict:
+                                    sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                            simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                            weights = simlist/np.sum(simlist)
+                            selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                            selectPair = select_L2_hops[selectPairIdx]
                             
+                            already_idx.append(selectPair)
+                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[2]][0])
+                            real_id.append(self.re_id[selectPair[2]])
+                            
+                            # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
+                            # real_id.append(self.re_id[train_L3[idx][2]])
 
-                        count+=1  
+                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], '<extra_id_0>',self.node_feature[link_datum[0]][0])
+                                
 
-                        go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            count+=1  
+
+                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -1638,6 +3040,11 @@ class PubMed_Dataset(Dataset):
                     pass
 
             elif task_template['id'] == '1-3-3-3':
+                # Added part
+                simdeg_L1_dict = {}
+                simdeg_L2_dict = {}
+                sim_dict = {}
+                
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     id_1,id_2=[],[]
@@ -1665,24 +3072,106 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], middle_list[:-2],'<extra_id_0>',self.node_feature[link_datum[3]][0], '<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0],'<extra_id_0>',self.node_feature[link_datum[2]][0])
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0], self.train_L1[link_datum[0]])
+                        L2_set = list(set([i[1] for i in train_L2]))
+                        simdeg_L2_dict = self._simdeg_dic_calc(link_datum[0], L2_set)
+                        
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                        train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                        
                         while go_on and count < len(train_L3):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
-                            id_1.append(self.re_id[train_L3[idx][2]])
-                            middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][0]][0],self.node_feature[train_L3[idx][1]][0])
-                            id_2.append(self.re_id[train_L3[idx][0]])
-                            id_2.append(self.re_id[train_L3[idx][1]])
-
-                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], middle_list[:-2],'<extra_id_0>',self.node_feature[link_datum[3]][0], '<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0],'<extra_id_0>',self.node_feature[link_datum[2]][0])
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L2 = None
+                            select_L1_hops = None
+                            select_L2_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops in train_L2_undepleted
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    
+                                    # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L2 = True
+                                        
+                                        while go_on_L2:
+                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                                # select random node from select_L1_hops
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                select_L2_ID = np.random.choice(
+                                                    range(len(select_L1_hops)),
+                                                    p = weights_L2 / np.sum(weights_L2)
+                                                )
+                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                
+                                                # check number of L3 hops not in already_idx
+                                                select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                                
+                                                if len(select_L2_hops) > 0:
+                                                    go_on_L2 = False
+                                                else:
+                                                    train_L2_undepleted.remove(select_L2)
+                                                    select_L2 = None
+                                            else:
+                                                go_on_L2 = False
+                                                
+                                        if select_L2 is None:
+                                            train_L1_undepleted.remove(select_L1)
+                                            select_L1 = None
+                                        else:
+                                            go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L2_undepleted left, select_L2 will be None
                             
+                            if select_L2 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L2_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                                selectPair = select_L2_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                
+                                node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[2]][0])
+                                middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0],self.node_feature[selectPair[1]][0])
+                                id_1.append(self.re_id[selectPair[2]])
+                                id_2.append(self.re_id[selectPair[0]])
+                                id_2.append(self.re_id[selectPair[1]])
+                                
+                                # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
 
-                            count+=1   
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
+                                # id_1.append(self.re_id[train_L3[idx][2]])
+                                # middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][0]][0],self.node_feature[train_L3[idx][1]][0])
+                                # id_2.append(self.re_id[train_L3[idx][0]])
+                                # id_2.append(self.re_id[train_L3[idx][1]])
+
+                                source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], middle_list[:-2],'<extra_id_0>',self.node_feature[link_datum[3]][0], '<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0],'<extra_id_0>',self.node_feature[link_datum[2]][0])
+                                
+
+                                count+=1   
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -1710,24 +3199,106 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], middle_list[:-2],'<extra_id_0>',self.node_feature[negative][0], '<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0],'<extra_id_0>',self.node_feature[link_datum[2]][0])
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0], self.train_L1[link_datum[0]])
+                        L2_set = list(set([i[1] for i in train_L2]))
+                        simdeg_L2_dict = self._simdeg_dic_calc(link_datum[0], L2_set)
+                        
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                        train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                        
                         while go_on and count < len(train_L3):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
-                            id_1.append(self.re_id[train_L3[idx][2]])
-                            middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][0]][0],self.node_feature[train_L3[idx][1]][0])
-                            id_2.append(self.re_id[train_L3[idx][0]])
-                            id_2.append(self.re_id[train_L3[idx][1]])
-
-                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], middle_list[:-2],'<extra_id_0>',self.node_feature[negative][0], '<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0],'<extra_id_0>',self.node_feature[link_datum[2]][0])
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L2 = None
+                            select_L1_hops = None
+                            select_L2_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops in train_L2_undepleted
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    
+                                    # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L2 = True
+                                        
+                                        while go_on_L2:
+                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                                # select random node from select_L1_hops
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                select_L2_ID = np.random.choice(
+                                                    range(len(select_L1_hops)),
+                                                    p = weights_L2 / np.sum(weights_L2)
+                                                )
+                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                
+                                                # check number of L3 hops not in already_idx
+                                                select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                                
+                                                if len(select_L2_hops) > 0:
+                                                    go_on_L2 = False
+                                                else:
+                                                    train_L2_undepleted.remove(select_L2)
+                                                    select_L2 = None
+                                            else:
+                                                go_on_L2 = False
+                                                
+                                        if select_L2 is None:
+                                            train_L1_undepleted.remove(select_L1)
+                                            select_L1 = None
+                                        else:
+                                            go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L2_undepleted left, select_L2 will be None
                             
+                            if select_L2 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L2_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                                selectPair = select_L2_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                
+                                node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[2]][0])
+                                middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0],self.node_feature[selectPair[1]][0])
+                                id_1.append(self.re_id[selectPair[2]])
+                                id_2.append(self.re_id[selectPair[0]])
+                                id_2.append(self.re_id[selectPair[1]])
+                                
+                                # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
 
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
+                                # id_1.append(self.re_id[train_L3[idx][2]])
+                                # middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][0]][0],self.node_feature[train_L3[idx][1]][0])
+                                # id_2.append(self.re_id[train_L3[idx][0]])
+                                # id_2.append(self.re_id[train_L3[idx][1]])
+
+                                source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2], middle_list[:-2],'<extra_id_0>',self.node_feature[negative][0], '<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0],'<extra_id_0>',self.node_feature[link_datum[2]][0])
+                                
+
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -1747,6 +3318,11 @@ class PubMed_Dataset(Dataset):
                     pass
 
             elif task_template['id'] == '1-3-3-4': 
+                # Added part
+                simdeg_L1_dict = {}
+                simdeg_L2_dict = {}
+                sim_dict = {}
+                
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     id_1,id_2=[],[]
@@ -1771,24 +3347,106 @@ class PubMed_Dataset(Dataset):
                     source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2],middle_list[:-2],'<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0],'<extra_id_0>',self.node_feature[link_datum[2]][0])
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     already_idx=[]
+                    
+                    #추가한 부분
+                    simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0], self.train_L1[link_datum[0]])
+                    L2_set = list(set([i[1] for i in train_L2]))
+                    simdeg_L2_dict = self._simdeg_dic_calc(link_datum[0], L2_set)
+                    
+                    train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
+                    train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                    
                     while go_on and count < len(train_L3):  
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-                        node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
-                        id_1.append(self.re_id[train_L3[idx][2]])
-                        middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][0]][0],self.node_feature[train_L3[idx][1]][0])
-                        id_2.append(self.re_id[train_L3[idx][0]])
-                        id_2.append(self.re_id[train_L3[idx][1]])
-
-                        source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2],middle_list[:-2],'<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0],'<extra_id_0>',self.node_feature[link_datum[2]][0])
+                        #추가한 부분
+                        go_on_L1 = True
+                        select_L1 = None
+                        select_L2 = None
+                        select_L1_hops = None
+                        select_L2_hops = None
+                        while go_on_L1:
+                            if len(train_L1_undepleted) > 0:
+                                # select random node from train_L1_undepleted
+                                weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                select_L1 = np.random.choice(
+                                    train_L1_undepleted,
+                                    p = weights/np.sum(weights)
+                                )
+                                
+                                # check number of L2 hops in train_L2_undepleted
+                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                
+                                # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                if len(select_L1_hops) > 0:
+                                    go_on_L2 = True
+                                    
+                                    while go_on_L2:
+                                        if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            # select random node from select_L1_hops
+                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                            select_L2_ID = np.random.choice(
+                                                range(len(select_L1_hops)),
+                                                p = weights_L2 / np.sum(weights_L2)
+                                            )
+                                            select_L2 = select_L1_hops[select_L2_ID]
+                                            
+                                            # check number of L3 hops not in already_idx
+                                            select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                            
+                                            if len(select_L2_hops) > 0:
+                                                go_on_L2 = False
+                                            else:
+                                                train_L2_undepleted.remove(select_L2)
+                                                select_L2 = None
+                                        else:
+                                            go_on_L2 = False
+                                            
+                                    if select_L2 is None:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                    else:
+                                        go_on_L1 = False
+                                else:
+                                    train_L1_undepleted.remove(select_L1)
+                            else:
+                                go_on_L1 = False
+                        # At this point, if there is no train_L2_undepleted left, select_L2 will be None
+                        
+                        if select_L2 is None:
+                            go_on = False
+                        else:
+                            for pair in select_L2_hops:
+                                if pair[-1] not in sim_dict:
+                                    sim_dict[pair[-1]] = self._sim_calc(link_datum[0], pair[-1])
+                            simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                            weights = simlist/np.sum(simlist)
+                            selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                            selectPair = select_L2_hops[selectPairIdx]
                             
+                            already_idx.append(selectPair)
+                            
+                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[2]][0])
+                            middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0],self.node_feature[selectPair[1]][0])
+                            id_1.append(self.re_id[selectPair[2]])
+                            id_2.append(self.re_id[selectPair[0]])
+                            id_2.append(self.re_id[selectPair[1]])
+                            
+                            # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
+                            # id_1.append(self.re_id[train_L3[idx][2]])
+                            # middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][0]][0],self.node_feature[train_L3[idx][1]][0])
+                            # id_2.append(self.re_id[train_L3[idx][0]])
+                            # id_2.append(self.re_id[train_L3[idx][1]])
 
-                        count+=1  
+                            source_text =self.prefix_1 + task_template['source'].format('<extra_id_0>',self.node_feature[link_datum[0]][0], node_list[:-2],middle_list[:-2],'<extra_id_0>',self.node_feature[link_datum[0]][0],'<extra_id_0>',self.node_feature[link_datum[1]][0],'<extra_id_0>',self.node_feature[link_datum[2]][0])
+                                
 
-                        go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            count+=1  
+
+                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -1867,15 +3525,25 @@ class PubMed_Dataset(Dataset):
                         count=0
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', label)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
-                        already_idx=[]
+                        # already_idx=[]
+                        
+                        # Added Part
+                        similarity_dic = self._sim_dic_calc(point,self.train_L1[point])
+                        sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
+                        
                         while go_on and count < len(self.train_L1[point]):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
+                            # select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'<extra_id_0>, '
+                            # real_id.append(self.re_id[self.train_L1[point][idx]])
+
+                            # Added + Changed Part
+                            selectID = sorted_sim[count][0]
                             node_list=node_list+'<extra_id_0>, '
-                            real_id.append(self.re_id[self.train_L1[point][idx]])
+                            real_id.append(self.re_id[selectID])
 
                             source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', label)
                             
@@ -1899,16 +3567,26 @@ class PubMed_Dataset(Dataset):
 
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', negative)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
-                        already_idx=[]
+                        # already_idx=[]
+                        
+                        # Added Part
+                        similarity_dic = self._sim_dic_calc(point,self.train_L1[point])
+                        sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
+                        
                         while go_on and count < len(self.train_L1[point]): 
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
+                            # select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'<extra_id_0>, '
+                            # real_id.append(self.re_id[self.train_L1[point][idx]])
+                            
+                            # Added + Changed Part
+                            selectID = sorted_sim[count][0]
                             node_list=node_list+'<extra_id_0>, '
-                            real_id.append(self.re_id[self.train_L1[point][idx]])
-
+                            real_id.append(self.re_id[selectID])
+                            
                             source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', negative)
                             
 
@@ -1927,7 +3605,7 @@ class PubMed_Dataset(Dataset):
                     pass
 
 
-            elif task_template['id'] == '2-1-1-2':
+            elif task_template['id'] == '2-1-1-2': #원래 2-1-1-2임
                 if self.mode!=None: 
                     
                     real_id=[self.re_id[point]]
@@ -1935,18 +3613,26 @@ class PubMed_Dataset(Dataset):
                     count=0
                     source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],'<extra_id_0>')
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
-                    already_idx=[]
+                    
+                    # Added Part
+                    similarity_dic = self._sim_dic_calc(point,self.train_L1[point])
+                    sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
+                    
                     while go_on and count < len(self.train_L1[point]):  
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
+                        # select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
+                        # idx=int(np.random.choice(select,1,replace=False)[0])
+                        # already_idx.append(idx)
+                        # node_list=node_list+'<extra_id_0>, '
+                        # real_id.append(self.re_id[self.train_L1[point][idx]])
+
+                        # Added + Changed Part
+                        selectID = sorted_sim[count][0]
                         node_list=node_list+'<extra_id_0>, '
-                        real_id.append(self.re_id[self.train_L1[point][idx]])
+                        real_id.append(self.re_id[selectID])
 
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>')
-                            
 
                         count+=1  
 
@@ -1963,7 +3649,11 @@ class PubMed_Dataset(Dataset):
                 elif self.mode=='val':   
                     pass
             
-            elif task_template['id'] == '2-1-2-1':
+            elif task_template['id'] == '2-1-2-1': #원래 2-1-2-1임
+                # Added part
+                simdeg_L1_dict = {}
+                sim_dict = {}
+                
                 if self.mode!=None: 
                     train_L2=[]
                     for eee in self.train_L1[point]:
@@ -1979,20 +3669,65 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', label)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                        
                         while go_on and count < len(train_L2):  
                             temp_text=source_text  
-
-                            select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'<extra_id_0>, '
-                            real_id.append(self.re_id[train_L2[idx][1]])
-
-                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', label)
                             
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L1_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops not in already_idx
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                    
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L1_undepleted left, select_L1 will be None
+                            
+                            if select_L1 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L1_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                                selectPair = select_L1_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'<extra_id_0>, '
+                                real_id.append(self.re_id[selectPair[1]])
+                                
+                                # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'<extra_id_0>, '
+                                # real_id.append(self.re_id[train_L2[idx][1]])
 
-                            count+=1   
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', label)
+                                
+
+                                count+=1   
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2001,6 +3736,13 @@ class PubMed_Dataset(Dataset):
 
                         real_id.append(self.re_id[point])
                         target_text = task_template['target'].format('yes')
+                        
+                        # print(f"train_L2: {train_L2}")
+                        # print(f"no. train_L2: {len(train_L2)}")
+                        # print(f"real_id: {real_id}")
+                        # print(f"no. real_id: {len(real_id)}")
+                        # print(f"token len: {len(self.tokenizer.tokenize(source_text))}")
+                        # print(f"source_text: {source_text}")
 
                     else:  
                         real_id=[self.re_id[point]]
@@ -2010,20 +3752,65 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', negative)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                        
                         while go_on and count < len(train_L2):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'<extra_id_0>, '
-                            real_id.append(self.re_id[train_L2[idx][1]])
-
-                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', negative)
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L1_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops not in already_idx
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                    
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L1_undepleted left, select_L1 will be None
                             
+                            if select_L1 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L1_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                                selectPair = select_L1_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'<extra_id_0>, '
+                                real_id.append(self.re_id[selectPair[1]])
+                                
+                                # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'<extra_id_0>, '
+                                # real_id.append(self.re_id[train_L2[idx][1]])
 
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', negative)
+
+
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2034,7 +3821,12 @@ class PubMed_Dataset(Dataset):
                         target_text = task_template['target'].format('no')
                 elif self.mode=='val': 
                     pass
+                
             elif task_template['id'] == '2-1-2-2':
+                # Added part
+                simdeg_L1_dict = {}
+                sim_dict = {}
+                
                 if self.mode!=None: 
                     train_L2=[]
                     for eee in self.train_L1[point]:
@@ -2048,21 +3840,66 @@ class PubMed_Dataset(Dataset):
                     source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],'<extra_id_0>')
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     already_idx=[]
+                    
+                    #추가한 부분
+                    simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
+                    train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                    
                     while go_on and count < len(train_L2):  
                         temp_text=source_text   
-
-                        select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-                        node_list=node_list+'<extra_id_0>, '
-                        real_id.append(self.re_id[train_L2[idx][1]])
-
-                        source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>')
+                        
+                        #추가한 부분
+                        go_on_L1 = True
+                        select_L1 = None
+                        select_L1_hops = None
+                        while go_on_L1:
+                            if len(train_L1_undepleted) > 0:
+                                # select random node from train_L1_undepleted
+                                weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                select_L1 = np.random.choice(
+                                    train_L1_undepleted,
+                                    p = weights/np.sum(weights)
+                                )
+                                
+                                # check number of L2 hops not in already_idx
+                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                
+                                if len(select_L1_hops) > 0:
+                                    go_on_L1 = False
+                                else:
+                                    train_L1_undepleted.remove(select_L1)
+                                    select_L1 = None
+                            else:
+                                go_on_L1 = False
+                        # At this point, if there is no train_L1_undepleted left, select_L1 will be None
+                        
+                        if select_L1 is None:
+                            go_on = False
+                        else:
+                            for pair in select_L1_hops:
+                                if pair[-1] not in sim_dict:
+                                    sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                            simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                            weights = simlist/np.sum(simlist)
+                            selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                            selectPair = select_L1_hops[selectPairIdx]
                             
+                            already_idx.append(selectPair)
+                            node_list=node_list+'<extra_id_0>, '
+                            real_id.append(self.re_id[selectPair[1]])
+                            
+                            # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'<extra_id_0>, '
+                            # real_id.append(self.re_id[train_L2[idx][1]])
 
-                        count+=1  
+                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>')
+                                
 
-                        go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            count+=1  
+
+                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -2075,7 +3912,12 @@ class PubMed_Dataset(Dataset):
 
                 elif self.mode=='val': 
                     pass
+                
             elif task_template['id'] == '2-1-2-3':
+                # Added part
+                simdeg_L1_dict = {}
+                sim_dict = {}
+                
                 if self.mode!=None: 
                     train_L2=[]
                     for eee in self.train_L1[point]:
@@ -2094,23 +3936,70 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], middle_list[:-2],'<extra_id_0>', label)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                        
                         while go_on and count < len(train_L2):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'<extra_id_0>, '
-                            id_1.append(self.re_id[train_L2[idx][1]])
-
-                            middle_list=middle_list+'<extra_id_0>, '
-                            id_2.append(self.re_id[train_L2[idx][0]])
-
-                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], middle_list[:-2],'<extra_id_0>', label)
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L1_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops not in already_idx
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                    
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L1_undepleted left, select_L1 will be None
                             
+                            if select_L1 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L1_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                                selectPair = select_L1_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'<extra_id_0>, '
+                                middle_list=middle_list+'<extra_id_0>, '
+                                id_1.append(self.re_id[selectPair[1]])
+                                id_2.append(self.re_id[selectPair[0]])
+                                
+                                # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'<extra_id_0>, '
+                                # id_1.append(self.re_id[train_L2[idx][1]])
 
-                            count+=1   
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                # middle_list=middle_list+'<extra_id_0>, '
+                                # id_2.append(self.re_id[train_L2[idx][0]])
+
+                                source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], middle_list[:-2],'<extra_id_0>', label)
+                                
+
+                                count+=1   
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2132,22 +4021,69 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2], '<extra_id_0>', negative)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                        
                         while go_on and count < len(train_L2): 
-                            temp_text=source_text   
-
-                            select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'<extra_id_0>, '
-                            id_1.append(self.re_id[train_L2[idx][1]])
-                            middle_list=middle_list+'<extra_id_0>, '
-                            id_2.append(self.re_id[train_L2[idx][0]])
-
-                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2], '<extra_id_0>', negative)
+                            temp_text=source_text  
                             
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L1_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops not in already_idx
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                    
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L1_undepleted left, select_L1 will be None
+                            
+                            if select_L1 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L1_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                                selectPair = select_L1_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'<extra_id_0>, '
+                                middle_list=middle_list+'<extra_id_0>, '
+                                id_1.append(self.re_id[selectPair[1]])
+                                id_2.append(self.re_id[selectPair[0]])
+                                
+                                # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'<extra_id_0>, '
+                                # id_1.append(self.re_id[train_L2[idx][1]])
+                                # middle_list=middle_list+'<extra_id_0>, '
+                                # id_2.append(self.re_id[train_L2[idx][0]])
 
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2], '<extra_id_0>', negative)
+                                
+
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2162,6 +4098,10 @@ class PubMed_Dataset(Dataset):
                 elif self.mode=='val': 
                     pass
             elif task_template['id'] == '2-1-2-4':
+                # Added part
+                simdeg_L1_dict = {}
+                sim_dict = {}
+                
                 if self.mode!=None: 
                     train_L2=[]
                     for eee in self.train_L1[point]:
@@ -2178,23 +4118,70 @@ class PubMed_Dataset(Dataset):
                     source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2],'<extra_id_0>')
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     already_idx=[]
+                    
+                    #추가한 부분
+                    simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
+                    train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                    
                     while go_on and count < len(train_L2):  
-                        temp_text=source_text   
-
-                        select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-                        node_list=node_list+'<extra_id_0>, '
-                        id_1.append(self.re_id[train_L2[idx][1]])
-                        middle_list=middle_list+'<extra_id_0>, '
-                        id_2.append(self.re_id[train_L2[idx][0]])
-
-                        source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2], '<extra_id_0>')
+                        temp_text=source_text 
+                        
+                        #추가한 부분
+                        go_on_L1 = True
+                        select_L1 = None
+                        select_L1_hops = None
+                        while go_on_L1:
+                            if len(train_L1_undepleted) > 0:
+                                # select random node from train_L1_undepleted
+                                weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                select_L1 = np.random.choice(
+                                    train_L1_undepleted,
+                                    p = weights/np.sum(weights)
+                                )
+                                
+                                # check number of L2 hops not in already_idx
+                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                
+                                if len(select_L1_hops) > 0:
+                                    go_on_L1 = False
+                                else:
+                                    train_L1_undepleted.remove(select_L1)
+                                    select_L1 = None
+                            else:
+                                go_on_L1 = False
+                        # At this point, if there is no train_L1_undepleted left, select_L1 will be None
+                        
+                        if select_L1 is None:
+                            go_on = False
+                        else:
+                            for pair in select_L1_hops:
+                                if pair[-1] not in sim_dict:
+                                    sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                            simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                            weights = simlist/np.sum(simlist)
+                            selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                            selectPair = select_L1_hops[selectPairIdx]
                             
+                            already_idx.append(selectPair)
+                            node_list=node_list+'<extra_id_0>, '
+                            middle_list=middle_list+'<extra_id_0>, '
+                            id_1.append(self.re_id[selectPair[1]])
+                            id_2.append(self.re_id[selectPair[0]])
+                            
+                            # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'<extra_id_0>, '
+                            # id_1.append(self.re_id[train_L2[idx][1]])
+                            # middle_list=middle_list+'<extra_id_0>, '
+                            # id_2.append(self.re_id[train_L2[idx][0]])
 
-                        count+=1  
+                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2], '<extra_id_0>')
+                                
 
-                        go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            count+=1  
+
+                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -2215,6 +4202,11 @@ class PubMed_Dataset(Dataset):
 
 
             elif task_template['id'] == '2-1-3-1':    
+                # Added part
+                simdeg_L1_dict = {}
+                simdeg_L2_dict = {}
+                sim_dict = {}
+                
                 if self.mode!=None: 
                     train_L2=[]
                     for eee in self.train_L1[point]:
@@ -2237,20 +4229,98 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', label)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(point, self.train_L1[point])
+                        L2_set = list(set([i[1] for i in train_L2]))
+                        simdeg_L2_dict = self._simdeg_dic_calc(point, L2_set)
+                        
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                        train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                        
                         while go_on and count < len(train_L3):  
                             temp_text=source_text   
-
-                            select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'<extra_id_0>, '
-                            real_id.append(self.re_id[train_L3[idx][2]])
-
-                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],'<extra_id_0>', label)
                             
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L2 = None
+                            select_L1_hops = None
+                            select_L2_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops in train_L2_undepleted
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    
+                                    # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L2 = True
+                                        
+                                        while go_on_L2:
+                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                                # select random node from select_L1_hops
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                select_L2_ID = np.random.choice(
+                                                    range(len(select_L1_hops)),
+                                                    p = weights_L2 / np.sum(weights_L2)
+                                                )
+                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                
+                                                # check number of L3 hops not in already_idx
+                                                select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                                
+                                                if len(select_L2_hops) > 0:
+                                                    go_on_L2 = False
+                                                else:
+                                                    train_L2_undepleted.remove(select_L2)
+                                                    select_L2 = None
+                                            else:
+                                                go_on_L2 = False
+                                                
+                                        if select_L2 is None:
+                                            train_L1_undepleted.remove(select_L1)
+                                            select_L1 = None
+                                        else:
+                                            go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L2_undepleted left, select_L2 will be None
+                            
+                            if select_L2 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L2_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                                selectPair = select_L2_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'<extra_id_0>, '
+                                real_id.append(self.re_id[selectPair[2]])
+                                
+                                # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'<extra_id_0>, '
+                                # real_id.append(self.re_id[train_L3[idx][2]])
 
-                            count+=1   
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],'<extra_id_0>', label)
+                                
+
+                                count+=1   
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2271,19 +4341,97 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', negative)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(point, self.train_L1[point])
+                        L2_set = list(set([i[1] for i in train_L2]))
+                        simdeg_L2_dict = self._simdeg_dic_calc(point, L2_set)
+                        
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                        train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                        
                         while go_on and count < len(train_L3):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'<extra_id_0>, '
-                            real_id.append(self.re_id[train_L3[idx][2]])
-
-                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', negative)
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L2 = None
+                            select_L1_hops = None
+                            select_L2_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops in train_L2_undepleted
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    
+                                    # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L2 = True
+                                        
+                                        while go_on_L2:
+                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                                # select random node from select_L1_hops
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                select_L2_ID = np.random.choice(
+                                                    range(len(select_L1_hops)),
+                                                    p = weights_L2 / np.sum(weights_L2)
+                                                )
+                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                
+                                                # check number of L3 hops not in already_idx
+                                                select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                                
+                                                if len(select_L2_hops) > 0:
+                                                    go_on_L2 = False
+                                                else:
+                                                    train_L2_undepleted.remove(select_L2)
+                                                    select_L2 = None
+                                            else:
+                                                go_on_L2 = False
+                                                
+                                        if select_L2 is None:
+                                            train_L1_undepleted.remove(select_L1)
+                                            select_L1 = None
+                                        else:
+                                            go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L2_undepleted left, select_L2 will be None
                             
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            if select_L2 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L2_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                                selectPair = select_L2_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'<extra_id_0>, '
+                                real_id.append(self.re_id[selectPair[2]])
+                                
+                                # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'<extra_id_0>, '
+                                # real_id.append(self.re_id[train_L3[idx][2]])
+
+                                source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], '<extra_id_0>', negative)
+                                
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2294,7 +4442,13 @@ class PubMed_Dataset(Dataset):
                         target_text = task_template['target'].format('no')
                 elif self.mode=='val':   
                     pass
-            elif task_template['id'] == '2-1-3-2':
+                
+            elif task_template['id'] == '2-1-3-2': # 원래 2-1-3-2임
+                # Added part
+                simdeg_L1_dict = {}
+                simdeg_L2_dict = {}
+                sim_dict = {}
+                
                 if self.mode!=None: 
                     train_L2=[]
                     for eee in self.train_L1[point]:
@@ -2316,21 +4470,99 @@ class PubMed_Dataset(Dataset):
                     source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],'<extra_id_0>')
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     already_idx=[]
+                    
+                    #추가한 부분
+                    simdeg_L1_dict = self._simdeg_dic_calc(point, self.train_L1[point])
+                    L2_set = list(set([i[1] for i in train_L2]))
+                    simdeg_L2_dict = self._simdeg_dic_calc(point, L2_set)
+                    
+                    train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                    train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                    
                     while go_on and count < len(train_L3):  
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-                        node_list=node_list+'<extra_id_0>, '
-                        real_id.append(self.re_id[train_L3[idx][2]])
-
-                        source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],'<extra_id_0>')
+                        #추가한 부분
+                        go_on_L1 = True
+                        select_L1 = None
+                        select_L2 = None
+                        select_L1_hops = None
+                        select_L2_hops = None
+                        while go_on_L1:
+                            if len(train_L1_undepleted) > 0:
+                                # select random node from train_L1_undepleted
+                                weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                select_L1 = np.random.choice(
+                                    train_L1_undepleted,
+                                    p = weights/np.sum(weights)
+                                )
+                                
+                                # check number of L2 hops in train_L2_undepleted
+                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                
+                                # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                if len(select_L1_hops) > 0:
+                                    go_on_L2 = True
+                                    
+                                    while go_on_L2:
+                                        if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            # select random node from select_L1_hops
+                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                            select_L2_ID = np.random.choice(
+                                                range(len(select_L1_hops)),
+                                                p = weights_L2 / np.sum(weights_L2)
+                                            )
+                                            select_L2 = select_L1_hops[select_L2_ID]
+                                            
+                                            # check number of L3 hops not in already_idx
+                                            select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                            
+                                            if len(select_L2_hops) > 0:
+                                                go_on_L2 = False
+                                            else:
+                                                train_L2_undepleted.remove(select_L2)
+                                                select_L2 = None
+                                        else:
+                                            go_on_L2 = False
+                                            
+                                    if select_L2 is None:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                    else:
+                                        go_on_L1 = False
+                                else:
+                                    train_L1_undepleted.remove(select_L1)
+                            else:
+                                go_on_L1 = False
+                        # At this point, if there is no train_L2_undepleted left, select_L2 will be None
+                        
+                        if select_L2 is None:
+                            go_on = False
+                        else:
+                            for pair in select_L2_hops:
+                                if pair[-1] not in sim_dict:
+                                    sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                            simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                            weights = simlist/np.sum(simlist)
+                            selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                            selectPair = select_L2_hops[selectPairIdx]
                             
+                            already_idx.append(selectPair)
+                            node_list=node_list+'<extra_id_0>, '
+                            real_id.append(self.re_id[selectPair[2]])
+                            
+                            # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'<extra_id_0>, '
+                            # real_id.append(self.re_id[train_L3[idx][2]])
 
-                        count+=1  
+                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],'<extra_id_0>')
+                                
 
-                        go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            count+=1  
+
+                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -2339,12 +4571,24 @@ class PubMed_Dataset(Dataset):
 
                     real_id.append(self.re_id[point])
                     target_text = task_template['target'].format(label)
+                    
+                    #print(f"train_L3: {train_L3}")
+                    #print(f"no. train_L2: {len(train_L3)}")
+                    #print(f"real_id: {real_id}")
+                    #print(f"no. real_id: {len(real_id)}")
+                    #print(f"token len: {len(self.tokenizer.tokenize(source_text))}")
+                    #print(f"source_text: {source_text}")
 
 
                 elif self.mode=='val':  
                     pass
 
             elif task_template['id'] == '2-1-3-3':
+                # Added part
+                simdeg_L1_dict = {}
+                simdeg_L2_dict = {}
+                sim_dict = {}
+                
                 if self.mode!=None: 
                     train_L2=[]
                     for eee in self.train_L1[point]:
@@ -2369,24 +4613,106 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], middle_list[:-2],'<extra_id_0>',label)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(point, self.train_L1[point])
+                        L2_set = list(set([i[1] for i in train_L2]))
+                        simdeg_L2_dict = self._simdeg_dic_calc(point, L2_set)
+                        
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                        train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                        
                         while go_on and count < len(train_L3):  
                             temp_text=source_text   
-
-                            select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'<extra_id_0>, '
-                            id_1.append(self.re_id[train_L3[idx][2]])
-
-                            middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
-                            id_2.append(self.re_id[train_L3[idx][0]])
-                            id_2.append(self.re_id[train_L3[idx][1]])
-
-                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], middle_list[:-2],'<extra_id_0>',label)
                             
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L2 = None
+                            select_L1_hops = None
+                            select_L2_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops in train_L2_undepleted
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    
+                                    # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L2 = True
+                                        
+                                        while go_on_L2:
+                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                                # select random node from select_L1_hops
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                select_L2_ID = np.random.choice(
+                                                    range(len(select_L1_hops)),
+                                                    p = weights_L2 / np.sum(weights_L2)
+                                                )
+                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                
+                                                # check number of L3 hops not in already_idx
+                                                select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                                
+                                                if len(select_L2_hops) > 0:
+                                                    go_on_L2 = False
+                                                else:
+                                                    train_L2_undepleted.remove(select_L2)
+                                                    select_L2 = None
+                                            else:
+                                                go_on_L2 = False
+                                                
+                                        if select_L2 is None:
+                                            train_L1_undepleted.remove(select_L1)
+                                            select_L1 = None
+                                        else:
+                                            go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L2_undepleted left, select_L2 will be None
+                            
+                            if select_L2 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L2_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                                selectPair = select_L2_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                
+                                node_list=node_list+'<extra_id_0>, '
+                                middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
+                                id_1.append(self.re_id[selectPair[2]])
+                                id_2.append(self.re_id[selectPair[0]])
+                                id_2.append(self.re_id[selectPair[1]])
+                                
+                                # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'<extra_id_0>, '
+                                # id_1.append(self.re_id[train_L3[idx][2]])
 
-                            count+=1   
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                # middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
+                                # id_2.append(self.re_id[train_L3[idx][0]])
+                                # id_2.append(self.re_id[train_L3[idx][1]])
+
+                                source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2], middle_list[:-2],'<extra_id_0>',label)
+                                
+
+                                count+=1   
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2403,7 +4729,7 @@ class PubMed_Dataset(Dataset):
                     else:  
                         real_id=[self.re_id[point]]
                         id_1,id_2=[],[]
-                      
+                        
                         node_list=''
                         middle_list=''    
                         count=0
@@ -2412,25 +4738,107 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2], '<extra_id_0>',negative)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(point, self.train_L1[point])
+                        L2_set = list(set([i[1] for i in train_L2]))
+                        simdeg_L2_dict = self._simdeg_dic_calc(point, L2_set)
+                        
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                        train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                        
                         while go_on and count < len(train_L3):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-
-                            node_list=node_list+'<extra_id_0>, '
-                            id_1.append(self.re_id[train_L3[idx][2]])
-
-                            middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
-                            id_2.append(self.re_id[train_L3[idx][0]])
-                            id_2.append(self.re_id[train_L3[idx][1]])
-
-                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2], '<extra_id_0>', negative)
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L2 = None
+                            select_L1_hops = None
+                            select_L2_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops in train_L2_undepleted
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    
+                                    # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L2 = True
+                                        
+                                        while go_on_L2:
+                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                                # select random node from select_L1_hops
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                select_L2_ID = np.random.choice(
+                                                    range(len(select_L1_hops)),
+                                                    p = weights_L2 / np.sum(weights_L2)
+                                                )
+                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                
+                                                # check number of L3 hops not in already_idx
+                                                select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                                
+                                                if len(select_L2_hops) > 0:
+                                                    go_on_L2 = False
+                                                else:
+                                                    train_L2_undepleted.remove(select_L2)
+                                                    select_L2 = None
+                                            else:
+                                                go_on_L2 = False
+                                                
+                                        if select_L2 is None:
+                                            train_L1_undepleted.remove(select_L1)
+                                            select_L1 = None
+                                        else:
+                                            go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L2_undepleted left, select_L2 will be None
                             
+                            if select_L2 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L2_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                                selectPair = select_L2_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                
+                                node_list=node_list+'<extra_id_0>, '
+                                middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
+                                id_1.append(self.re_id[selectPair[2]])
+                                id_2.append(self.re_id[selectPair[0]])
+                                id_2.append(self.re_id[selectPair[1]])
+                                
+                                # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
 
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                # node_list=node_list+'<extra_id_0>, '
+                                # id_1.append(self.re_id[train_L3[idx][2]])
+
+                                # middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
+                                # id_2.append(self.re_id[train_L3[idx][0]])
+                                # id_2.append(self.re_id[train_L3[idx][1]])
+
+                                source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2], '<extra_id_0>', negative)
+                                
+
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2446,6 +4854,11 @@ class PubMed_Dataset(Dataset):
                 elif self.mode=='val':   
                     pass
             elif task_template['id'] == '2-1-3-4':
+                # Added part
+                simdeg_L1_dict = {}
+                simdeg_L2_dict = {}
+                sim_dict = {}
+                
                 if self.mode!=None: 
                     train_L2=[]
                     for eee in self.train_L1[point]:
@@ -2468,25 +4881,108 @@ class PubMed_Dataset(Dataset):
                     source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2],'<extra_id_0>')
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     already_idx=[]
+                    
+                    #추가한 부분
+                    simdeg_L1_dict = self._simdeg_dic_calc(point, self.train_L1[point])
+                    L2_set = list(set([i[1] for i in train_L2]))
+                    simdeg_L2_dict = self._simdeg_dic_calc(point, L2_set)
+                    
+                    train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                    train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                    
                     while go_on and count < len(train_L3): 
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-
-                        node_list=node_list+'<extra_id_0>, '
-                        id_1.append(self.re_id[train_L3[idx][2]])
-                        middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
-                        id_2.append(self.re_id[train_L3[idx][0]])
-                        id_2.append(self.re_id[train_L3[idx][1]])
-
-                        source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2], '<extra_id_0>')
+                        
+                        #추가한 부분
+                        go_on_L1 = True
+                        select_L1 = None
+                        select_L2 = None
+                        select_L1_hops = None
+                        select_L2_hops = None
+                        while go_on_L1:
+                            if len(train_L1_undepleted) > 0:
+                                # select random node from train_L1_undepleted
+                                weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                select_L1 = np.random.choice(
+                                    train_L1_undepleted,
+                                    p = weights/np.sum(weights)
+                                )
+                                
+                                # check number of L2 hops in train_L2_undepleted
+                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                
+                                # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                if len(select_L1_hops) > 0:
+                                    go_on_L2 = True
+                                    
+                                    while go_on_L2:
+                                        if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            # select random node from select_L1_hops
+                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                            select_L2_ID = np.random.choice(
+                                                range(len(select_L1_hops)),
+                                                p = weights_L2 / np.sum(weights_L2)
+                                            )
+                                            select_L2 = select_L1_hops[select_L2_ID]
+                                            
+                                            # check number of L3 hops not in already_idx
+                                            select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                            
+                                            if len(select_L2_hops) > 0:
+                                                go_on_L2 = False
+                                            else:
+                                                train_L2_undepleted.remove(select_L2)
+                                                select_L2 = None
+                                        else:
+                                            go_on_L2 = False
+                                            
+                                    if select_L2 is None:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                    else:
+                                        go_on_L1 = False
+                                else:
+                                    train_L1_undepleted.remove(select_L1)
+                            else:
+                                go_on_L1 = False
+                        # At this point, if there is no train_L2_undepleted left, select_L2 will be None
+                        
+                        if select_L2 is None:
+                            go_on = False
+                        else:
+                            for pair in select_L2_hops:
+                                if pair[-1] not in sim_dict:
+                                    sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                            simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                            weights = simlist/np.sum(simlist)
+                            selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                            selectPair = select_L2_hops[selectPairIdx]
                             
+                            already_idx.append(selectPair)
+                            
+                            node_list=node_list+'<extra_id_0>, '
+                            middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
+                            id_1.append(self.re_id[selectPair[2]])
+                            id_2.append(self.re_id[selectPair[0]])
+                            id_2.append(self.re_id[selectPair[1]])
+                            
+                            # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
 
-                        count+=1  
+                            # node_list=node_list+'<extra_id_0>, '
+                            # id_1.append(self.re_id[train_L3[idx][2]])
+                            # middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
+                            # id_2.append(self.re_id[train_L3[idx][0]])
+                            # id_2.append(self.re_id[train_L3[idx][1]])
 
-                        go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>', node_list[:-2],middle_list[:-2], '<extra_id_0>')
+                                
+
+                            count+=1  
+
+                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -2515,15 +5011,26 @@ class PubMed_Dataset(Dataset):
                         count=0
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], '<extra_id_0>',tit, label)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
-                        already_idx=[]
+                        # already_idx=[]
+                        
+                        # Added Part
+                        similarity_dic = self._sim_dic_calc(point,self.train_L1[point])
+                        sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
+                        
+                        
                         while go_on and count < len(self.train_L1[point]):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[self.train_L1[point][idx]][0])
-                            real_id.append(self.re_id[self.train_L1[point][idx]])
+                            # select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[self.train_L1[point][idx]][0])
+                            # real_id.append(self.re_id[self.train_L1[point][idx]])
+
+                            # Added + Changed Part
+                            selectID = sorted_sim[count][0]
+                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectID][0])
+                            real_id.append(self.re_id[selectID])
 
                             source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], '<extra_id_0>',tit, label)
                             
@@ -2547,16 +5054,25 @@ class PubMed_Dataset(Dataset):
 
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], '<extra_id_0>',tit, negative)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
-                        already_idx=[]
+                        # already_idx=[]
+                        
+                        # Added Part
+                        similarity_dic = self._sim_dic_calc(point,self.train_L1[point])
+                        sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
+                        
                         while go_on and count < len(self.train_L1[point]):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[self.train_L1[point][idx]][0])
-                            real_id.append(self.re_id[self.train_L1[point][idx]])
+                            # select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[self.train_L1[point][idx]][0])
+                            # real_id.append(self.re_id[self.train_L1[point][idx]])
 
+                            # Added + Changed Part
+                            selectID = sorted_sim[count][0]
+                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectID][0])
+                            real_id.append(self.re_id[selectID])
 
                             source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], '<extra_id_0>',tit, negative)
                             
@@ -2584,18 +5100,33 @@ class PubMed_Dataset(Dataset):
                     count=0
                     source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],'<extra_id_0>',tit)
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
-                    already_idx=[]
+                    # already_idx=[]
+                    
+                    # Added Part
+                    similarity_dic = self._sim_dic_calc(point,self.train_L1[point])
+                    sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
+                    
                     while go_on and count < len(self.train_L1[point]):  
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-                        node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[self.train_L1[point][idx]][0])
-                        real_id.append(self.re_id[self.train_L1[point][idx]])
+                        # select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
+                        # idx=int(np.random.choice(select,1,replace=False)[0])
+                        # already_idx.append(idx)
+                        # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[self.train_L1[point][idx]][0])
+                        # real_id.append(self.re_id[self.train_L1[point][idx]])
+                        
+                        # Added + Changed Part
+                        selectID = sorted_sim[count][0]
+                        node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectID][0])
+                        real_id.append(self.re_id[selectID])
 
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], '<extra_id_0>',tit)
-                            
+                        
+                        # print("select: " + str(select))
+                        # print("idx: " +  str(idx))
+                        # print("node_list: " + str(node_list))
+                        # print("source_text: " + source_text)
+                        # exit()
 
                         count+=1  
 
@@ -2613,6 +5144,10 @@ class PubMed_Dataset(Dataset):
                     pass
             
             elif task_template['id'] == '2-3-2-1':
+                # Added part
+                simdeg_L1_dict = {}
+                sim_dict = {}
+                
                 if self.mode!=None: 
                     train_L2=[]
                     for eee in self.train_L1[point]:
@@ -2628,20 +5163,65 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], '<extra_id_0>',tit, label)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                        
                         while go_on and count < len(train_L2): 
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
-                            real_id.append(self.re_id[train_L2[idx][1]])
-
-                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], '<extra_id_0>',tit, label)
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L1_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops not in already_idx
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                    
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L1_undepleted left, select_L1 will be None
                             
+                            if select_L1 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L1_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                                selectPair = select_L1_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[1]][0])
+                                real_id.append(self.re_id[selectPair[1]])
+                                
+                                # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
+                                # real_id.append(self.re_id[train_L2[idx][1]])
 
-                            count+=1   
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], '<extra_id_0>',tit, label)
+                                
+
+                                count+=1   
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2659,20 +5239,65 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], '<extra_id_0>',tit, negative)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                        
                         while go_on and count < len(train_L2):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
-                            real_id.append(self.re_id[train_L2[idx][1]])
-
-                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], '<extra_id_0>',tit, negative)
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L1_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops not in already_idx
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                    
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L1_undepleted left, select_L1 will be None
                             
+                            if select_L1 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L1_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                                selectPair = select_L1_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[1]][0])
+                                real_id.append(self.re_id[selectPair[1]])
+                                
+                                # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
+                                # real_id.append(self.re_id[train_L2[idx][1]])
 
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], '<extra_id_0>',tit, negative)
+                                
+
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2684,6 +5309,10 @@ class PubMed_Dataset(Dataset):
                 elif self.mode=='val': 
                     pass
             elif task_template['id'] == '2-3-2-2':
+                # Added part
+                simdeg_L1_dict = {}
+                sim_dict = {}
+                
                 if self.mode!=None: 
                     train_L2=[]
                     for eee in self.train_L1[point]:
@@ -2697,21 +5326,66 @@ class PubMed_Dataset(Dataset):
                     source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],'<extra_id_0>',tit)
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     already_idx=[]
+                    
+                    #추가한 부분
+                    simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
+                    train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                    
                     while go_on and count < len(train_L2):  
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-                        node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
-                        real_id.append(self.re_id[train_L2[idx][1]])
-
-                        source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], '<extra_id_0>',tit)
+                        #추가한 부분
+                        go_on_L1 = True
+                        select_L1 = None
+                        select_L1_hops = None
+                        while go_on_L1:
+                            if len(train_L1_undepleted) > 0:
+                                # select random node from train_L1_undepleted
+                                weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                select_L1 = np.random.choice(
+                                    train_L1_undepleted,
+                                    p = weights/np.sum(weights)
+                                )
+                                
+                                # check number of L2 hops not in already_idx
+                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                
+                                if len(select_L1_hops) > 0:
+                                    go_on_L1 = False
+                                else:
+                                    train_L1_undepleted.remove(select_L1)
+                                    select_L1 = None
+                            else:
+                                go_on_L1 = False
+                        # At this point, if there is no train_L1_undepleted left, select_L1 will be None
+                        
+                        if select_L1 is None:
+                            go_on = False
+                        else:
+                            for pair in select_L1_hops:
+                                if pair[-1] not in sim_dict:
+                                    sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                            simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                            weights = simlist/np.sum(simlist)
+                            selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                            selectPair = select_L1_hops[selectPairIdx]
                             
+                            already_idx.append(selectPair)
+                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[1]][0])
+                            real_id.append(self.re_id[selectPair[1]])
+                            
+                            # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
+                            # real_id.append(self.re_id[train_L2[idx][1]])
 
-                        count+=1  
+                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], '<extra_id_0>',tit)
+                                
 
-                        go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            count+=1  
+
+                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -2725,6 +5399,10 @@ class PubMed_Dataset(Dataset):
                 elif self.mode=='val': 
                     pass
             elif task_template['id'] == '2-3-2-3':
+                # Added part
+                simdeg_L1_dict = {}
+                sim_dict = {}
+                
                 if self.mode!=None: 
                     train_L2=[]
                     for eee in self.train_L1[point]:
@@ -2743,23 +5421,70 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], middle_list[:-2],'<extra_id_0>',tit, label)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                        
                         while go_on and count < len(train_L2):  
                             temp_text=source_text  
 
-                            select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
-                            id_1.append(self.re_id[train_L2[idx][1]])
-
-                            middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][0]][0])
-                            id_2.append(self.re_id[train_L2[idx][0]])
-
-                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], middle_list[:-2],'<extra_id_0>',tit, label)
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L1_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops not in already_idx
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                    
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L1_undepleted left, select_L1 will be None
                             
+                            if select_L1 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L1_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                                selectPair = select_L1_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[1]][0])
+                                middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0])
+                                id_1.append(self.re_id[selectPair[1]])
+                                id_2.append(self.re_id[selectPair[0]])
+                                
+                                # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
+                                # id_1.append(self.re_id[train_L2[idx][1]])
 
-                            count+=1   
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                # middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][0]][0])
+                                # id_2.append(self.re_id[train_L2[idx][0]])
+
+                                source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], middle_list[:-2],'<extra_id_0>',tit, label)
+                                
+
+                                count+=1   
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2782,23 +5507,70 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],middle_list[:-2], '<extra_id_0>',tit, negative)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                        
                         while go_on and count < len(train_L2):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
-                            id_1.append(self.re_id[train_L2[idx][1]])
-
-                            middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][0]][0])
-                            id_2.append(self.re_id[train_L2[idx][0]])
-
-                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],middle_list[:-2], '<extra_id_0>',tit, negative)
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L1_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops not in already_idx
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                    
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L1_undepleted left, select_L1 will be None
                             
+                            if select_L1 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L1_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                                selectPair = select_L1_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[1]][0])
+                                middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0])
+                                id_1.append(self.re_id[selectPair[1]])
+                                id_2.append(self.re_id[selectPair[0]])
+                                
+                                # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
+                                # id_1.append(self.re_id[train_L2[idx][1]])
 
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                # middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][0]][0])
+                                # id_2.append(self.re_id[train_L2[idx][0]])
+
+                                source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],middle_list[:-2], '<extra_id_0>',tit, negative)
+                                
+
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2813,6 +5585,10 @@ class PubMed_Dataset(Dataset):
                 elif self.mode=='val': 
                     pass
             elif task_template['id'] == '2-3-2-4':
+                # Added part
+                simdeg_L1_dict = {}
+                sim_dict = {}
+                
                 if self.mode!=None: 
                     train_L2=[]
                     for eee in self.train_L1[point]:
@@ -2829,25 +5605,72 @@ class PubMed_Dataset(Dataset):
                     source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],middle_list[:-2],'<extra_id_0>',tit)
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     already_idx=[]
+                    
+                    #추가한 부분
+                    simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
+                    train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                    
                     while go_on and count < len(train_L2):  
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-                        node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
-                        id_1.append(self.re_id[train_L2[idx][1]])
-
-                        middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][0]][0])
-                        id_2.append(self.re_id[train_L2[idx][0]])
-
-
-                        source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],middle_list[:-2], '<extra_id_0>',tit)
+                        #추가한 부분
+                        go_on_L1 = True
+                        select_L1 = None
+                        select_L1_hops = None
+                        while go_on_L1:
+                            if len(train_L1_undepleted) > 0:
+                                # select random node from train_L1_undepleted
+                                weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                select_L1 = np.random.choice(
+                                    train_L1_undepleted,
+                                    p = weights/np.sum(weights)
+                                )
+                                
+                                # check number of L2 hops not in already_idx
+                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop not in already_idx]
+                                
+                                if len(select_L1_hops) > 0:
+                                    go_on_L1 = False
+                                else:
+                                    train_L1_undepleted.remove(select_L1)
+                                    select_L1 = None
+                            else:
+                                go_on_L1 = False
+                        # At this point, if there is no train_L1_undepleted left, select_L1 will be None
+                        
+                        if select_L1 is None:
+                            go_on = False
+                        else:
+                            for pair in select_L1_hops:
+                                if pair[-1] not in sim_dict:
+                                    sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                            simlist = [sim_dict[pair[-1]] for pair in select_L1_hops]
+                            weights = simlist/np.sum(simlist)
+                            selectPairIdx = np.random.choice(range(len(select_L1_hops)), p=weights)
+                            selectPair = select_L1_hops[selectPairIdx]
                             
+                            already_idx.append(selectPair)
+                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[1]][0])
+                            middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0])
+                            id_1.append(self.re_id[selectPair[1]])
+                            id_2.append(self.re_id[selectPair[0]])
+                            
+                            # select=list(set(list(range(len(train_L2)))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][1]][0])
+                            # id_1.append(self.re_id[train_L2[idx][1]])
 
-                        count+=1  
+                            # middle_list=middle_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L2[idx][0]][0])
+                            # id_2.append(self.re_id[train_L2[idx][0]])
 
-                        go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+
+                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],middle_list[:-2], '<extra_id_0>',tit)
+                                
+
+                            count+=1  
+
+                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -2868,6 +5691,11 @@ class PubMed_Dataset(Dataset):
 
 
             elif task_template['id'] == '2-3-3-1':    
+                # Added part
+                simdeg_L1_dict = {}
+                simdeg_L2_dict = {}
+                sim_dict = {}
+                
                 if self.mode!=None: 
                     train_L2=[]
                     for eee in self.train_L1[point]:
@@ -2890,20 +5718,98 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], '<extra_id_0>',tit, label)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(point, self.train_L1[point])
+                        L2_set = list(set([i[1] for i in train_L2]))
+                        simdeg_L2_dict = self._simdeg_dic_calc(point, L2_set)
+                        
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                        train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                        
                         while go_on and count < len(train_L3):  
                             temp_text=source_text  
 
-                            select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
-                            real_id.append(self.re_id[train_L3[idx][2]])
-
-                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],'<extra_id_0>',tit, label)
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L2 = None
+                            select_L1_hops = None
+                            select_L2_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops in train_L2_undepleted
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    
+                                    # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L2 = True
+                                        
+                                        while go_on_L2:
+                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                                # select random node from select_L1_hops
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                select_L2_ID = np.random.choice(
+                                                    range(len(select_L1_hops)),
+                                                    p = weights_L2 / np.sum(weights_L2)
+                                                )
+                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                
+                                                # check number of L3 hops not in already_idx
+                                                select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                                
+                                                if len(select_L2_hops) > 0:
+                                                    go_on_L2 = False
+                                                else:
+                                                    train_L2_undepleted.remove(select_L2)
+                                                    select_L2 = None
+                                            else:
+                                                go_on_L2 = False
+                                                
+                                        if select_L2 is None:
+                                            train_L1_undepleted.remove(select_L1)
+                                            select_L1 = None
+                                        else:
+                                            go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L2_undepleted left, select_L2 will be None
                             
+                            if select_L2 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L2_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                                selectPair = select_L2_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[2]][0])
+                                real_id.append(self.re_id[selectPair[2]])
+                                
+                                # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
+                                # real_id.append(self.re_id[train_L3[idx][2]])
 
-                            count+=1   
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],'<extra_id_0>',tit, label)
+                                
+
+                                count+=1   
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2924,20 +5830,98 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], '<extra_id_0>',tit, negative)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(point, self.train_L1[point])
+                        L2_set = list(set([i[1] for i in train_L2]))
+                        simdeg_L2_dict = self._simdeg_dic_calc(point, L2_set)
+                        
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                        train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                        
                         while go_on and count < len(train_L3):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
-                            real_id.append(self.re_id[train_L3[idx][2]])
-
-                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], '<extra_id_0>',tit, negative)
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L2 = None
+                            select_L1_hops = None
+                            select_L2_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops in train_L2_undepleted
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    
+                                    # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L2 = True
+                                        
+                                        while go_on_L2:
+                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                                # select random node from select_L1_hops
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                select_L2_ID = np.random.choice(
+                                                    range(len(select_L1_hops)),
+                                                    p = weights_L2 / np.sum(weights_L2)
+                                                )
+                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                
+                                                # check number of L3 hops not in already_idx
+                                                select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                                
+                                                if len(select_L2_hops) > 0:
+                                                    go_on_L2 = False
+                                                else:
+                                                    train_L2_undepleted.remove(select_L2)
+                                                    select_L2 = None
+                                            else:
+                                                go_on_L2 = False
+                                                
+                                        if select_L2 is None:
+                                            train_L1_undepleted.remove(select_L1)
+                                            select_L1 = None
+                                        else:
+                                            go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L2_undepleted left, select_L2 will be None
                             
+                            if select_L2 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L2_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                                selectPair = select_L2_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[2]][0])
+                                real_id.append(self.re_id[selectPair[2]])
+                                
+                                # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
+                                # real_id.append(self.re_id[train_L3[idx][2]])
 
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], '<extra_id_0>',tit, negative)
+                                
+
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2948,7 +5932,13 @@ class PubMed_Dataset(Dataset):
                         target_text = task_template['target'].format('no')
                 elif self.mode=='val':  
                     pass
+                
             elif task_template['id'] == '2-3-3-2':
+                # Added part
+                simdeg_L1_dict = {}
+                simdeg_L2_dict = {}
+                sim_dict = {}
+                
                 if self.mode!=None: 
                     train_L2=[]
                     for eee in self.train_L1[point]:
@@ -2969,21 +5959,99 @@ class PubMed_Dataset(Dataset):
                     source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],'<extra_id_0>',tit)
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     already_idx=[]
+                    
+                    #추가한 부분
+                    simdeg_L1_dict = self._simdeg_dic_calc(point, self.train_L1[point])
+                    L2_set = list(set([i[1] for i in train_L2]))
+                    simdeg_L2_dict = self._simdeg_dic_calc(point, L2_set)
+                    
+                    train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                    train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                    
                     while go_on and count < len(train_L3):  
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-                        node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
-                        real_id.append(self.re_id[train_L3[idx][2]])
-
-                        source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],'<extra_id_0>',tit)
+                        #추가한 부분
+                        go_on_L1 = True
+                        select_L1 = None
+                        select_L2 = None
+                        select_L1_hops = None
+                        select_L2_hops = None
+                        while go_on_L1:
+                            if len(train_L1_undepleted) > 0:
+                                # select random node from train_L1_undepleted
+                                weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                select_L1 = np.random.choice(
+                                    train_L1_undepleted,
+                                    p = weights/np.sum(weights)
+                                )
+                                
+                                # check number of L2 hops in train_L2_undepleted
+                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                
+                                # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                if len(select_L1_hops) > 0:
+                                    go_on_L2 = True
+                                    
+                                    while go_on_L2:
+                                        if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            # select random node from select_L1_hops
+                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                            select_L2_ID = np.random.choice(
+                                                range(len(select_L1_hops)),
+                                                p = weights_L2 / np.sum(weights_L2)
+                                            )
+                                            select_L2 = select_L1_hops[select_L2_ID]
+                                            
+                                            # check number of L3 hops not in already_idx
+                                            select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                            
+                                            if len(select_L2_hops) > 0:
+                                                go_on_L2 = False
+                                            else:
+                                                train_L2_undepleted.remove(select_L2)
+                                                select_L2 = None
+                                        else:
+                                            go_on_L2 = False
+                                            
+                                    if select_L2 is None:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                    else:
+                                        go_on_L1 = False
+                                else:
+                                    train_L1_undepleted.remove(select_L1)
+                            else:
+                                go_on_L1 = False
+                        # At this point, if there is no train_L2_undepleted left, select_L2 will be None
+                        
+                        if select_L2 is None:
+                            go_on = False
+                        else:
+                            for pair in select_L2_hops:
+                                if pair[-1] not in sim_dict:
+                                    sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                            simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                            weights = simlist/np.sum(simlist)
+                            selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                            selectPair = select_L2_hops[selectPairIdx]
                             
+                            already_idx.append(selectPair)
+                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[2]][0])
+                            real_id.append(self.re_id[selectPair[2]])
+                            
+                            # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
+                            # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
+                            # real_id.append(self.re_id[train_L3[idx][2]])
 
-                        count+=1  
+                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],'<extra_id_0>',tit)
+                                
 
-                        go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            count+=1  
+
+                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -2998,6 +6066,11 @@ class PubMed_Dataset(Dataset):
                     pass
 
             elif task_template['id'] == '2-3-3-3':
+                # Added part
+                simdeg_L1_dict = {}
+                simdeg_L2_dict = {}
+                sim_dict = {}
+                
                 if self.mode!=None: 
                     train_L2=[]
                     for eee in self.train_L1[point]:
@@ -3022,24 +6095,106 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], middle_list[:-2],'<extra_id_0>',tit,label)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(point, self.train_L1[point])
+                        L2_set = list(set([i[1] for i in train_L2]))
+                        simdeg_L2_dict = self._simdeg_dic_calc(point, L2_set)
+                        
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                        train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                        
                         while go_on and count < len(train_L3):  
                             temp_text=source_text  
 
-                            select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
-                            id_1.append(self.re_id[train_L3[idx][2]])
-
-                            middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][0]][0],self.node_feature[train_L3[idx][1]][0])
-                            id_2.append(self.re_id[train_L3[idx][0]])
-                            id_2.append(self.re_id[train_L3[idx][1]])
-
-                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], middle_list[:-2],'<extra_id_0>',tit,label)
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L2 = None
+                            select_L1_hops = None
+                            select_L2_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops in train_L2_undepleted
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    
+                                    # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L2 = True
+                                        
+                                        while go_on_L2:
+                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                                # select random node from select_L1_hops
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                select_L2_ID = np.random.choice(
+                                                    range(len(select_L1_hops)),
+                                                    p = weights_L2 / np.sum(weights_L2)
+                                                )
+                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                
+                                                # check number of L3 hops not in already_idx
+                                                select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                                
+                                                if len(select_L2_hops) > 0:
+                                                    go_on_L2 = False
+                                                else:
+                                                    train_L2_undepleted.remove(select_L2)
+                                                    select_L2 = None
+                                            else:
+                                                go_on_L2 = False
+                                                
+                                        if select_L2 is None:
+                                            train_L1_undepleted.remove(select_L1)
+                                            select_L1 = None
+                                        else:
+                                            go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L2_undepleted left, select_L2 will be None
                             
+                            if select_L2 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L2_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                                selectPair = select_L2_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                
+                                node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[2]][0])
+                                middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0],self.node_feature[selectPair[1]][0])
+                                id_1.append(self.re_id[selectPair[2]])
+                                id_2.append(self.re_id[selectPair[0]])
+                                id_2.append(self.re_id[selectPair[1]])
+                                
+                                # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
+                                # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
+                                # id_1.append(self.re_id[train_L3[idx][2]])
 
-                            count+=1   
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                # middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][0]][0],self.node_feature[train_L3[idx][1]][0])
+                                # id_2.append(self.re_id[train_L3[idx][0]])
+                                # id_2.append(self.re_id[train_L3[idx][1]])
+
+                                source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2], middle_list[:-2],'<extra_id_0>',tit,label)
+                                
+
+                                count+=1   
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -3056,7 +6211,7 @@ class PubMed_Dataset(Dataset):
                     else:  
                         real_id=[self.re_id[point]]
                         id_1,id_2=[],[]
-                      
+                        
                         node_list=''
                         middle_list=''    
                         count=0
@@ -3065,25 +6220,107 @@ class PubMed_Dataset(Dataset):
                         source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],middle_list[:-2], '<extra_id_0>',tit,negative)
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         already_idx=[]
+                        
+                        #추가한 부분
+                        simdeg_L1_dict = self._simdeg_dic_calc(point, self.train_L1[point])
+                        L2_set = list(set([i[1] for i in train_L2]))
+                        simdeg_L2_dict = self._simdeg_dic_calc(point, L2_set)
+                        
+                        train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                        train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                        
                         while go_on and count < len(train_L3):  
                             temp_text=source_text   
 
-                            select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                            idx=int(np.random.choice(select,1,replace=False)[0])
-                            already_idx.append(idx)
-
-                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
-                            id_1.append(self.re_id[train_L3[idx][2]])
-
-                            middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][0]][0],self.node_feature[train_L3[idx][1]][0])
-                            id_2.append(self.re_id[train_L3[idx][0]])
-                            id_2.append(self.re_id[train_L3[idx][1]])
-
-                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],middle_list[:-2], '<extra_id_0>',tit, negative)
+                            #추가한 부분
+                            go_on_L1 = True
+                            select_L1 = None
+                            select_L2 = None
+                            select_L1_hops = None
+                            select_L2_hops = None
+                            while go_on_L1:
+                                if len(train_L1_undepleted) > 0:
+                                    # select random node from train_L1_undepleted
+                                    weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                    select_L1 = np.random.choice(
+                                        train_L1_undepleted,
+                                        p = weights/np.sum(weights)
+                                    )
+                                    
+                                    # check number of L2 hops in train_L2_undepleted
+                                    select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                    
+                                    # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                    if len(select_L1_hops) > 0:
+                                        go_on_L2 = True
+                                        
+                                        while go_on_L2:
+                                            if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                                # select random node from select_L1_hops
+                                                weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                                select_L2_ID = np.random.choice(
+                                                    range(len(select_L1_hops)),
+                                                    p = weights_L2 / np.sum(weights_L2)
+                                                )
+                                                select_L2 = select_L1_hops[select_L2_ID]
+                                                
+                                                # check number of L3 hops not in already_idx
+                                                select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                                
+                                                if len(select_L2_hops) > 0:
+                                                    go_on_L2 = False
+                                                else:
+                                                    train_L2_undepleted.remove(select_L2)
+                                                    select_L2 = None
+                                            else:
+                                                go_on_L2 = False
+                                                
+                                        if select_L2 is None:
+                                            train_L1_undepleted.remove(select_L1)
+                                            select_L1 = None
+                                        else:
+                                            go_on_L1 = False
+                                    else:
+                                        train_L1_undepleted.remove(select_L1)
+                                else:
+                                    go_on_L1 = False
+                            # At this point, if there is no train_L2_undepleted left, select_L2 will be None
                             
+                            if select_L2 is None:
+                                go_on = False
+                            else:
+                                for pair in select_L2_hops:
+                                    if pair[-1] not in sim_dict:
+                                        sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                                simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                                weights = simlist/np.sum(simlist)
+                                selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                                selectPair = select_L2_hops[selectPairIdx]
+                                
+                                already_idx.append(selectPair)
+                                
+                                node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[2]][0])
+                                middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0],self.node_feature[selectPair[1]][0])
+                                id_1.append(self.re_id[selectPair[2]])
+                                id_2.append(self.re_id[selectPair[0]])
+                                id_2.append(self.re_id[selectPair[1]])
+                                
+                                # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                                # idx=int(np.random.choice(select,1,replace=False)[0])
+                                # already_idx.append(idx)
 
-                            count+=1  
-                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                                # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
+                                # id_1.append(self.re_id[train_L3[idx][2]])
+
+                                # middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][0]][0],self.node_feature[train_L3[idx][1]][0])
+                                # id_2.append(self.re_id[train_L3[idx][0]])
+                                # id_2.append(self.re_id[train_L3[idx][1]])
+
+                                source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],middle_list[:-2], '<extra_id_0>',tit, negative)
+                                
+
+                                count+=1  
+                                go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -3098,7 +6335,13 @@ class PubMed_Dataset(Dataset):
                         target_text = task_template['target'].format('no')
                 elif self.mode=='val':  
                     pass
+                
             elif task_template['id'] == '2-3-3-4':
+                # Added part
+                simdeg_L1_dict = {}
+                simdeg_L2_dict = {}
+                sim_dict = {}
+                
                 if self.mode!=None: 
                     train_L2=[]
                     for eee in self.train_L1[point]:
@@ -3122,25 +6365,107 @@ class PubMed_Dataset(Dataset):
                     source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],middle_list[:-2],'<extra_id_0>',tit)
                     go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     already_idx=[]
+                    
+                    #추가한 부분
+                    simdeg_L1_dict = self._simdeg_dic_calc(point, self.train_L1[point])
+                    L2_set = list(set([i[1] for i in train_L2]))
+                    simdeg_L2_dict = self._simdeg_dic_calc(point, L2_set)
+                    
+                    train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
+                    train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
+                    
                     while go_on and count < len(train_L3):  
                         temp_text=source_text   
 
-                        select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
-                        idx=int(np.random.choice(select,1,replace=False)[0])
-                        already_idx.append(idx)
-
-                        node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
-                        id_1.append(self.re_id[train_L3[idx][2]])
-                        middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][0]][0],self.node_feature[train_L3[idx][1]][0])
-                        id_2.append(self.re_id[train_L3[idx][0]])
-                        id_2.append(self.re_id[train_L3[idx][1]])
-
-                        source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],middle_list[:-2], '<extra_id_0>',tit)
+                        #추가한 부분
+                        go_on_L1 = True
+                        select_L1 = None
+                        select_L2 = None
+                        select_L1_hops = None
+                        select_L2_hops = None
+                        while go_on_L1:
+                            if len(train_L1_undepleted) > 0:
+                                # select random node from train_L1_undepleted
+                                weights = [simdeg_L1_dict[nodeid] for nodeid in train_L1_undepleted]
+                                select_L1 = np.random.choice(
+                                    train_L1_undepleted,
+                                    p = weights/np.sum(weights)
+                                )
+                                
+                                # check number of L2 hops in train_L2_undepleted
+                                select_L1_hops = [hop for hop in train_L2 if hop[0] == select_L1 and hop in train_L2_undepleted]
+                                
+                                # 만약 L1의 neighbor 중에서 선택할게 남아있다면.
+                                if len(select_L1_hops) > 0:
+                                    go_on_L2 = True
+                                    
+                                    while go_on_L2:
+                                        if len([hop for hop in train_L2_undepleted if hop[0] == select_L1]) > 0:
+                                            # select random node from select_L1_hops
+                                            weights_L2 = [simdeg_L2_dict[pair[1]] for pair in select_L1_hops]
+                                            select_L2_ID = np.random.choice(
+                                                range(len(select_L1_hops)),
+                                                p = weights_L2 / np.sum(weights_L2)
+                                            )
+                                            select_L2 = select_L1_hops[select_L2_ID]
+                                            
+                                            # check number of L3 hops not in already_idx
+                                            select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
+                                            
+                                            if len(select_L2_hops) > 0:
+                                                go_on_L2 = False
+                                            else:
+                                                train_L2_undepleted.remove(select_L2)
+                                                select_L2 = None
+                                        else:
+                                            go_on_L2 = False
+                                            
+                                    if select_L2 is None:
+                                        train_L1_undepleted.remove(select_L1)
+                                        select_L1 = None
+                                    else:
+                                        go_on_L1 = False
+                                else:
+                                    train_L1_undepleted.remove(select_L1)
+                            else:
+                                go_on_L1 = False
+                        # At this point, if there is no train_L2_undepleted left, select_L2 will be None
+                        
+                        if select_L2 is None:
+                            go_on = False
+                        else:
+                            for pair in select_L2_hops:
+                                if pair[-1] not in sim_dict:
+                                    sim_dict[pair[-1]] = self._sim_calc(point, pair[-1])
+                            simlist = [sim_dict[pair[-1]] for pair in select_L2_hops]
+                            weights = simlist/np.sum(simlist)
+                            selectPairIdx = np.random.choice(range(len(select_L2_hops)), p=weights)
+                            selectPair = select_L2_hops[selectPairIdx]
                             
+                            already_idx.append(selectPair)
+                            
+                            node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[selectPair[2]][0])
+                            middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0],self.node_feature[selectPair[1]][0])
+                            id_1.append(self.re_id[selectPair[2]])
+                            id_2.append(self.re_id[selectPair[0]])
+                            id_2.append(self.re_id[selectPair[1]])
+                            
+                            # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
+                            # idx=int(np.random.choice(select,1,replace=False)[0])
+                            # already_idx.append(idx)
 
-                        count+=1  
+                            # node_list=node_list+'(<extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][2]][0])
+                            # id_1.append(self.re_id[train_L3[idx][2]])
+                            # middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[train_L3[idx][0]][0],self.node_feature[train_L3[idx][1]][0])
+                            # id_2.append(self.re_id[train_L3[idx][0]])
+                            # id_2.append(self.re_id[train_L3[idx][1]])
 
-                        go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            source_text =self.prefix_2 + task_template['source'].format('<extra_id_0>',tit, node_list[:-2],middle_list[:-2], '<extra_id_0>',tit)
+                                
+
+                            count+=1  
+
+                            go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
