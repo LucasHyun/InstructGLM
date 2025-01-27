@@ -6407,7 +6407,7 @@ class PubMed_Dataset(Dataset):
                                                 range(len(select_L1_hops)),
                                                 p = weights_L2 / np.sum(weights_L2)
                                             )
-                                            select_L2 = select_L1_hops[select_L2_ID]
+                                            select_L2 = select_L2_hops[select_L2_ID]
                                             
                                             # check number of L3 hops not in already_idx
                                             select_L2_hops = [hop for hop in train_L3 if hop[0] == select_L1 and hop[1] == select_L2[1] and hop not in already_idx]
