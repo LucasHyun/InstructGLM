@@ -1,1 +1,2 @@
-Put the preprocessed data here.
+Notably, real_feature.pkl is corresponding to the OGB feature embedding.
+The detailed information of other preprocessed files in ./my_data/ folder are summarized in arxiv.py
