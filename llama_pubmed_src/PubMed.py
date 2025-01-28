@@ -118,7 +118,7 @@ class PubMed_Dataset(Dataset):
             self.node_feature_BERT[point2]
         )
     
-     # STEP 3: Add these new methods right after __init__ and before compute_datum_info_train
+    # STEP 3: Add these new methods right after __init__ and before compute_datum_info_train
     def initialize_sns(self):
         """Initialize Supervised Node Similarity components"""
         for node in range(len(self.node_feature)):
