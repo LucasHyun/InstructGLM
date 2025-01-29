@@ -3372,6 +3372,18 @@ class Cora_Dataset(Dataset):
         elif task_name == 'classification':
             if self.mode=='train':   
                 point=self.classification[datum_idx]
+                # print(f"1 hop num: {len(self.train_L1[point])}")
+                # twohopsum = 0
+                # threehopsum = 0
+                # for i in self.train_L1[point]:
+                #     if i != point:
+                #         twohopsum += len(self.train_L1[i])
+                #         for j in self.train_L1[i]:
+                #             if j != point and i != j:
+                #                 threehopsum += len(self.train_L1[j])
+                # print(f"2 hop num: {twohopsum}")
+                # print(f"3 hop num: {threehopsum}")
+                
             elif self.mode=='val':
                 if cate=='inductive':
                     pass
