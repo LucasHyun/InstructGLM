@@ -6394,29 +6394,9 @@ class Cora_Dataset(Dataset):
             out_dict['cate']='None' if task_template['task']!='classification' else cate
 
         return out_dict
-        \
-    # STEP 5: Modify the existing collate_fn method where it starts
+        
     def collate_fn(self, batch):   
         batch_entry = {}
-        
-        # Add SNS and PinSAGE computations for training mode
-        if self.mode == 'train':
-            node_embeds = torch.tensor(self.llama_embed)
-            sns_loss = self.get_sns_loss(node_embeds)
-            batch_entry['sns_loss'] = sns_loss
-            
-            # Add neighbor aggregations for nodes in batch
-            neighbor_aggs = []
-            for i, entry in enumerate(batch):
-                if 'task' in entry and entry['task'] in ['link', 'classification']:
-                    datum_info = self.datum_info[i]  # Use the batch index directly
-                    if len(datum_info) >= 3:
-                        node_idx = datum_info[2]
-                        agg = self.aggregate_neighbors(node_idx, node_embeds)
-                        neighbor_aggs.append(agg)
-            
-            if neighbor_aggs:
-                batch_entry['neighbor_aggregations'] = torch.stack(neighbor_aggs)
 
         B = len(batch)
 
@@ -6479,6 +6459,9 @@ class Cora_Dataset(Dataset):
         batch_entry['loss_weights'] = loss_weights
         batch_entry['temp_ids'] = temp_ids   
         if len(cate)!=0:
+            batch_entry['cate'] = cate
+
+        return batch_entry    
             batch_entry['cate'] = cate
 
         return batch_entry    
