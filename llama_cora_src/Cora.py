@@ -6462,6 +6462,4 @@ class Cora_Dataset(Dataset):
             batch_entry['cate'] = cate
 
         return batch_entry    
-            batch_entry['cate'] = cate
 
-        return batch_entry    
