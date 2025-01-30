@@ -57,12 +57,12 @@ def parse(path):
 def unison_shuffled_copies(a, b):
     assert len(a) == len(b)
     p = np.random.permutation(len(a))
-    return (a[p], b[p])
+    return (np.array(a)[p].tolist(), np.array(b)[p].tolist())
 
 def unison_shuffled_copies(a, b, c):
     assert len(a) == len(b) == len(c)
     p = np.random.permutation(len(a))
-    return (a[p], b[p], c[p])
+    return (np.array(a)[p].tolist(), np.array(b)[p].tolist(), np.array(c)[p].tolist())
     
 
 class Cora_Dataset(Dataset):
