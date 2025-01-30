@@ -24,6 +24,9 @@ from collections import defaultdict  # Add this
 import torch.nn.functional as F
 from torch.nn import CosineSimilarity
 
+_do_abl = False
+
+_kval = 5
 
 def load_json(file_path):
     with open(file_path, "r") as f:
@@ -416,8 +419,8 @@ class PubMed_Dataset(Dataset):
                         similarity_dic = self._sim_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                         sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
                     
-                        while go_on and count < len(self.train_L1[link_datum[0]]):  
-                            temp_text=source_text   
+                        while go_on and count < len(self.train_L1[link_datum[0]]) and ((not _do_abl) or count < _kval**1):  
+                            temp_text=source_text 
 
                             # select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
                             # idx=int(np.random.choice(select,1,replace=False)[0])
@@ -458,7 +461,7 @@ class PubMed_Dataset(Dataset):
                         similarity_dic = self._sim_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                         sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
                         
-                        while go_on and count < len(self.train_L1[link_datum[0]]):  
+                        while go_on and count < len(self.train_L1[link_datum[0]]) and ((not _do_abl) or count < _kval**1):  
                             temp_text=source_text   
 
                             # select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
@@ -504,7 +507,7 @@ class PubMed_Dataset(Dataset):
                     similarity_dic = self._sim_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                     sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
                 
-                    while go_on and count < len(self.train_L1[link_datum[0]]):  
+                    while go_on and count < len(self.train_L1[link_datum[0]]) and ((not _do_abl) or count < _kval**1):  
                         temp_text=source_text   
 
                         # select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
@@ -611,7 +614,7 @@ class PubMed_Dataset(Dataset):
                         simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                         
-                        while go_on and count < len(train_L2):  
+                        while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -690,7 +693,7 @@ class PubMed_Dataset(Dataset):
                         simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                         
-                        while go_on and count < len(train_L2):  
+                        while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -784,7 +787,7 @@ class PubMed_Dataset(Dataset):
                     simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                     train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                     
-                    while go_on and count < len(train_L2):  
+                    while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                         temp_text=source_text   
 
                         #추가한 부분
@@ -880,7 +883,7 @@ class PubMed_Dataset(Dataset):
                         simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                         
-                        while go_on and count < len(train_L2):  
+                        while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -967,7 +970,7 @@ class PubMed_Dataset(Dataset):
                         simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                         
-                        while go_on and count < len(train_L2):  
+                        while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -1070,7 +1073,7 @@ class PubMed_Dataset(Dataset):
                     simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                     train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                     
-                    while go_on and count < len(train_L2): 
+                    while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2): 
                         temp_text=source_text   
 
                         #추가한 부분
@@ -1185,7 +1188,7 @@ class PubMed_Dataset(Dataset):
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                         train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                         
-                        while go_on and count < len(train_L3):  
+                        while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -1299,7 +1302,7 @@ class PubMed_Dataset(Dataset):
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                         train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                         
-                        while go_on and count < len(train_L3): 
+                        while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3): 
                             temp_text=source_text   
 
                             #추가한 부분
@@ -1432,7 +1435,7 @@ class PubMed_Dataset(Dataset):
                     train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                     train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                     
-                    while go_on and count < len(train_L3):  
+                    while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                         temp_text=source_text   
 
                         #추가한 부분
@@ -1572,7 +1575,7 @@ class PubMed_Dataset(Dataset):
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                         train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                         
-                        while go_on and count < len(train_L3):  
+                        while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -1700,7 +1703,7 @@ class PubMed_Dataset(Dataset):
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                         train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                         
-                        while go_on and count < len(train_L3):  
+                        while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -1848,7 +1851,7 @@ class PubMed_Dataset(Dataset):
                     train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                     train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                     
-                    while go_on and count < len(train_L3):  
+                    while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                         temp_text=source_text   
 
                         #추가한 부분
@@ -1976,7 +1979,7 @@ class PubMed_Dataset(Dataset):
                         similarity_dic = self._sim_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                         sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
                         
-                        while go_on and count < len(self.train_L1[link_datum[0]]):  
+                        while go_on and count < len(self.train_L1[link_datum[0]]) and ((not _do_abl) or count < _kval**1):  
                             temp_text=source_text  
 
                             # select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
@@ -2021,7 +2024,7 @@ class PubMed_Dataset(Dataset):
                         similarity_dic = self._sim_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                         sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
                         
-                        while go_on and count < len(self.train_L1[link_datum[0]]):  
+                        while go_on and count < len(self.train_L1[link_datum[0]]) and ((not _do_abl) or count < _kval**1):  
                             temp_text=source_text   
 
                             # select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
@@ -2067,7 +2070,7 @@ class PubMed_Dataset(Dataset):
                     similarity_dic = self._sim_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                     sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
                     
-                    while go_on and count < len(self.train_L1[link_datum[0]]):  
+                    while go_on and count < len(self.train_L1[link_datum[0]]) and ((not _do_abl) or count < _kval**1):  
                         temp_text=source_text   
 
                         # select=list(set(list(range(len(self.train_L1[link_datum[0]])))).difference(set(already_idx)))
@@ -2129,7 +2132,7 @@ class PubMed_Dataset(Dataset):
                         simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                         
-                        while go_on and count < len(train_L2):  
+                        while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -2208,7 +2211,7 @@ class PubMed_Dataset(Dataset):
                         simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                         
-                        while go_on and count < len(train_L2):  
+                        while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -2302,7 +2305,7 @@ class PubMed_Dataset(Dataset):
                     simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                     train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                     
-                    while go_on and count < len(train_L2):  
+                    while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                         temp_text=source_text   
 
                         #추가한 부분
@@ -2398,7 +2401,7 @@ class PubMed_Dataset(Dataset):
                         simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                         
-                        while go_on and count < len(train_L2):  
+                        while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -2488,7 +2491,7 @@ class PubMed_Dataset(Dataset):
                         simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                         
-                        while go_on and count < len(train_L2):  
+                        while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -2589,7 +2592,7 @@ class PubMed_Dataset(Dataset):
                     simdeg_L1_dict = self._simdeg_dic_calc(link_datum[0],self.train_L1[link_datum[0]])
                     train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                     
-                    while go_on and count < len(train_L2):  
+                    while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                         temp_text=source_text   
 
                         #추가한 부분
@@ -2704,7 +2707,7 @@ class PubMed_Dataset(Dataset):
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                         train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                         
-                        while go_on and count < len(train_L3): 
+                        while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3): 
                             temp_text=source_text   
 
                             #추가한 부분
@@ -2817,7 +2820,7 @@ class PubMed_Dataset(Dataset):
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                         train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                         
-                        while go_on and count < len(train_L3):  
+                        while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -2950,7 +2953,7 @@ class PubMed_Dataset(Dataset):
                     train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                     train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                     
-                    while go_on and count < len(train_L3):  
+                    while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                         temp_text=source_text   
 
                         #추가한 부분
@@ -3090,7 +3093,7 @@ class PubMed_Dataset(Dataset):
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                         train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                         
-                        while go_on and count < len(train_L3):  
+                        while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -3218,7 +3221,7 @@ class PubMed_Dataset(Dataset):
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                         train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                         
-                        while go_on and count < len(train_L3):  
+                        while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -3367,7 +3370,7 @@ class PubMed_Dataset(Dataset):
                     train_L1_undepleted=[nodeid for nodeid in self.train_L1[link_datum[0]]]
                     train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                     
-                    while go_on and count < len(train_L3):  
+                    while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                         temp_text=source_text   
 
                         #추가한 부분
@@ -3543,7 +3546,7 @@ class PubMed_Dataset(Dataset):
                         similarity_dic = self._sim_dic_calc(point,self.train_L1[point])
                         sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
                         
-                        while go_on and count < len(self.train_L1[point]):  
+                        while go_on and count < len(self.train_L1[point]) and ((not _do_abl) or count < _kval**1):  
                             temp_text=source_text   
 
                             # select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
@@ -3585,7 +3588,7 @@ class PubMed_Dataset(Dataset):
                         similarity_dic = self._sim_dic_calc(point,self.train_L1[point])
                         sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
                         
-                        while go_on and count < len(self.train_L1[point]): 
+                        while go_on and count < len(self.train_L1[point]) and ((not _do_abl) or count < _kval**1): 
                             temp_text=source_text   
 
                             # select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
@@ -3630,7 +3633,7 @@ class PubMed_Dataset(Dataset):
                     similarity_dic = self._sim_dic_calc(point,self.train_L1[point])
                     sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
                     
-                    while go_on and count < len(self.train_L1[point]):  
+                    while go_on and count < len(self.train_L1[point]) and ((not _do_abl) or count < _kval**1):  
                         temp_text=source_text   
 
                         # select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
@@ -3686,7 +3689,7 @@ class PubMed_Dataset(Dataset):
                         simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                         
-                        while go_on and count < len(train_L2):  
+                        while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                             temp_text=source_text  
                             
                             #추가한 부분
@@ -3769,7 +3772,7 @@ class PubMed_Dataset(Dataset):
                         simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                         
-                        while go_on and count < len(train_L2):  
+                        while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -3857,7 +3860,7 @@ class PubMed_Dataset(Dataset):
                     simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
                     train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                     
-                    while go_on and count < len(train_L2):  
+                    while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                         temp_text=source_text   
                         
                         #추가한 부분
@@ -3953,7 +3956,7 @@ class PubMed_Dataset(Dataset):
                         simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                         
-                        while go_on and count < len(train_L2):  
+                        while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -4038,7 +4041,7 @@ class PubMed_Dataset(Dataset):
                         simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                         
-                        while go_on and count < len(train_L2): 
+                        while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2): 
                             temp_text=source_text  
                             
                             #추가한 부분
@@ -4135,7 +4138,7 @@ class PubMed_Dataset(Dataset):
                     simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
                     train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                     
-                    while go_on and count < len(train_L2):  
+                    while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                         temp_text=source_text 
                         
                         #추가한 부분
@@ -4250,7 +4253,7 @@ class PubMed_Dataset(Dataset):
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                         train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                         
-                        while go_on and count < len(train_L3):  
+                        while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                             temp_text=source_text   
                             
                             #추가한 부분
@@ -4363,7 +4366,7 @@ class PubMed_Dataset(Dataset):
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                         train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                         
-                        while go_on and count < len(train_L3):  
+                        while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -4493,7 +4496,7 @@ class PubMed_Dataset(Dataset):
                     train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                     train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                     
-                    while go_on and count < len(train_L3):  
+                    while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                         temp_text=source_text   
 
                         #추가한 부분
@@ -4637,7 +4640,7 @@ class PubMed_Dataset(Dataset):
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                         train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                         
-                        while go_on and count < len(train_L3):  
+                        while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                             temp_text=source_text   
                             
                             #추가한 부분
@@ -4763,7 +4766,7 @@ class PubMed_Dataset(Dataset):
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                         train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                         
-                        while go_on and count < len(train_L3):  
+                        while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -4907,7 +4910,7 @@ class PubMed_Dataset(Dataset):
                     train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                     train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                     
-                    while go_on and count < len(train_L3): 
+                    while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3): 
                         temp_text=source_text   
 
                         
@@ -5036,7 +5039,7 @@ class PubMed_Dataset(Dataset):
                         sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
                         
                         
-                        while go_on and count < len(self.train_L1[point]):  
+                        while go_on and count < len(self.train_L1[point]) and ((not _do_abl) or count < _kval**1):  
                             temp_text=source_text   
 
                             # select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
@@ -5078,7 +5081,7 @@ class PubMed_Dataset(Dataset):
                         similarity_dic = self._sim_dic_calc(point,self.train_L1[point])
                         sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
                         
-                        while go_on and count < len(self.train_L1[point]):  
+                        while go_on and count < len(self.train_L1[point]) and ((not _do_abl) or count < _kval**1):  
                             temp_text=source_text   
 
                             # select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
@@ -5124,7 +5127,7 @@ class PubMed_Dataset(Dataset):
                     similarity_dic = self._sim_dic_calc(point,self.train_L1[point])
                     sorted_sim = sorted(similarity_dic.items(), key = lambda x: (x[1], x[0]), reverse = True)
                     
-                    while go_on and count < len(self.train_L1[point]):  
+                    while go_on and count < len(self.train_L1[point]) and ((not _do_abl) or count < _kval**1):  
                         temp_text=source_text   
 
                         # select=list(set(list(range(len(self.train_L1[point])))).difference(set(already_idx)))
@@ -5186,7 +5189,7 @@ class PubMed_Dataset(Dataset):
                         simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                         
-                        while go_on and count < len(train_L2): 
+                        while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2): 
                             temp_text=source_text   
 
                             #추가한 부분
@@ -5262,7 +5265,7 @@ class PubMed_Dataset(Dataset):
                         simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                         
-                        while go_on and count < len(train_L2):  
+                        while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -5349,7 +5352,7 @@ class PubMed_Dataset(Dataset):
                     simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
                     train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                     
-                    while go_on and count < len(train_L2):  
+                    while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                         temp_text=source_text   
 
                         #추가한 부분
@@ -5444,7 +5447,7 @@ class PubMed_Dataset(Dataset):
                         simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                         
-                        while go_on and count < len(train_L2):  
+                        while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                             temp_text=source_text  
 
                             #추가한 부분
@@ -5530,7 +5533,7 @@ class PubMed_Dataset(Dataset):
                         simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                         
-                        while go_on and count < len(train_L2):  
+                        while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -5628,7 +5631,7 @@ class PubMed_Dataset(Dataset):
                     simdeg_L1_dict = self._simdeg_dic_calc(point,self.train_L1[point])
                     train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                     
-                    while go_on and count < len(train_L2):  
+                    while go_on and count < len(train_L2) and ((not _do_abl) or count < _kval**2):  
                         temp_text=source_text   
 
                         #추가한 부분
@@ -5745,7 +5748,7 @@ class PubMed_Dataset(Dataset):
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                         train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                         
-                        while go_on and count < len(train_L3):  
+                        while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                             temp_text=source_text  
 
                             #추가한 부분
@@ -5858,7 +5861,7 @@ class PubMed_Dataset(Dataset):
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                         train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                         
-                        while go_on and count < len(train_L3):  
+                        while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -5988,7 +5991,7 @@ class PubMed_Dataset(Dataset):
                     train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                     train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                     
-                    while go_on and count < len(train_L3):  
+                    while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                         temp_text=source_text   
 
                         #추가한 부분
@@ -6125,7 +6128,7 @@ class PubMed_Dataset(Dataset):
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                         train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                         
-                        while go_on and count < len(train_L3):  
+                        while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                             temp_text=source_text  
 
                             #추가한 부분
@@ -6251,7 +6254,7 @@ class PubMed_Dataset(Dataset):
                         train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                         train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                         
-                        while go_on and count < len(train_L3):  
+                        while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                             temp_text=source_text   
 
                             #추가한 부분
@@ -6397,7 +6400,7 @@ class PubMed_Dataset(Dataset):
                     train_L1_undepleted=[nodeid for nodeid in self.train_L1[point]]
                     train_L2_undepleted=[nodeidpair for nodeidpair in train_L2]
                     
-                    while go_on and count < len(train_L3):  
+                    while go_on and count < len(train_L3) and ((not _do_abl) or count < _kval**3):  
                         temp_text=source_text   
 
                         #추가한 부분
