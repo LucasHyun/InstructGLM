@@ -54,15 +54,15 @@ def parse(path):
     for l in g:
         yield eval(l)
 
-def unison_shuffled_copies(a, b):
-    assert len(a) == len(b)
-    p = np.random.permutation(len(a))
-    return (np.array(a)[p].tolist(), np.array(b)[p].tolist())
-
-def unison_shuffled_copies(a, b, c):
-    assert len(a) == len(b) == len(c)
-    p = np.random.permutation(len(a))
-    return (np.array(a)[p].tolist(), np.array(b)[p].tolist(), np.array(c)[p].tolist())
+def unison_shuffled_copies(a, b, c = None):
+    if c is None:
+        assert len(a) == len(b)
+        p = np.random.permutation(len(a))
+        return (np.array(a)[p].tolist(), np.array(b)[p].tolist())
+    else:
+        assert len(a) == len(b) == len(c)
+        p = np.random.permutation(len(a))
+        return (np.array(a)[p].tolist(), np.array(b)[p].tolist(), np.array(c)[p].tolist())
     
 
 class Cora_Dataset(Dataset):
