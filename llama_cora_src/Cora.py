@@ -29,6 +29,10 @@ from collections import defaultdict  # Add this
 import torch.nn.functional as F
 from torch.nn import CosineSimilarity
 
+from itertools import chain
+
+_do_random_order = False
+
 
 def load_json(file_path):
     with open(file_path, "r") as f:
@@ -50,6 +54,15 @@ def parse(path):
     for l in g:
         yield eval(l)
 
+def unison_shuffled_copies(a, b):
+    assert len(a) == len(b)
+    p = np.random.permutation(len(a))
+    return (a[p], b[p])
+
+def unison_shuffled_copies(a, b, c):
+    assert len(a) == len(b) == len(c)
+    p = np.random.permutation(len(a))
+    return (a[p], b[p], c[p])
     
 
 class Cora_Dataset(Dataset):
@@ -333,6 +346,10 @@ class Cora_Dataset(Dataset):
 
                             count+=1  
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -377,6 +394,10 @@ class Cora_Dataset(Dataset):
 
                             count+=1  
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -424,6 +445,10 @@ class Cora_Dataset(Dataset):
                         count+=1  
 
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                    if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -573,6 +598,10 @@ class Cora_Dataset(Dataset):
 
                                 count+=1   
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -652,6 +681,10 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -746,6 +779,10 @@ class Cora_Dataset(Dataset):
                             count+=1  
 
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                    if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -846,6 +883,8 @@ class Cora_Dataset(Dataset):
 
                                 count+=1   
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            id_1, id_2 = unison_shuffled_copies(id_1, id_2)
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -934,6 +973,8 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            id_1, id_2 = unison_shuffled_copies(id_1, id_2)
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -1037,6 +1078,9 @@ class Cora_Dataset(Dataset):
                             count+=1  
 
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            
+                    if(_do_random_order):
+                            id_1, id_2 = unison_shuffled_copies(id_1, id_2)
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -1175,6 +1219,10 @@ class Cora_Dataset(Dataset):
 
                                 count+=1   
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -1289,6 +1337,10 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -1422,6 +1474,10 @@ class Cora_Dataset(Dataset):
                             count+=1  
 
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                    if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -1444,6 +1500,7 @@ class Cora_Dataset(Dataset):
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     id_1,id_2=[],[]
+                    id_3 = []
                     train_L2=[]
                     for eee in self.train_L1[link_datum[0]]:
                         for ttt in self.train_L1[eee]:
@@ -1551,7 +1608,7 @@ class Cora_Dataset(Dataset):
                                 middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
                                 id_1.append(self.re_id[selectPair[2]])
                                 id_2.append(self.re_id[selectPair[0]])
-                                id_2.append(self.re_id[selectPair[1]])
+                                id_3.append(self.re_id[selectPair[1]])
                                 
                                 # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
                                 # idx=int(np.random.choice(select,1,replace=False)[0])
@@ -1567,6 +1624,9 @@ class Cora_Dataset(Dataset):
 
                                 count+=1   
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            id_1, id_2, id_3 = unison_shuffled_copies(id_1, id_2, id_3)
+                            id_2 = list(chain.from_iterable(zip(id_2, id_3)))
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -1677,7 +1737,7 @@ class Cora_Dataset(Dataset):
                                 middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
                                 id_1.append(self.re_id[selectPair[2]])
                                 id_2.append(self.re_id[selectPair[0]])
-                                id_2.append(self.re_id[selectPair[1]])
+                                id_3.append(self.re_id[selectPair[1]])
                                 
                                 # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
                                 # idx=int(np.random.choice(select,1,replace=False)[0])
@@ -1693,6 +1753,9 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            id_1, id_2, id_3 = unison_shuffled_copies(id_1, id_2, id_3)
+                            id_2 = list(chain.from_iterable(zip(id_2, id_3)))
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -1719,6 +1782,7 @@ class Cora_Dataset(Dataset):
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     id_1,id_2=[],[]
+                    id_3 = []
                     train_L2=[]
                     for eee in self.train_L1[link_datum[0]]:
                         for ttt in self.train_L1[eee]:
@@ -1823,7 +1887,7 @@ class Cora_Dataset(Dataset):
                             middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
                             id_1.append(self.re_id[selectPair[2]])
                             id_2.append(self.re_id[selectPair[0]])
-                            id_2.append(self.re_id[selectPair[1]])
+                            id_3.append(self.re_id[selectPair[1]])
                             
                             # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
                             # idx=int(np.random.choice(select,1,replace=False)[0])
@@ -1840,6 +1904,10 @@ class Cora_Dataset(Dataset):
                             count+=1  
 
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            
+                    if(_do_random_order):
+                            id_1, id_2, id_3 = unison_shuffled_copies(id_1, id_2, id_3)
+                            id_2 = list(chain.from_iterable(zip(id_2, id_3)))
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -1895,6 +1963,10 @@ class Cora_Dataset(Dataset):
 
                             count+=1   
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -1940,6 +2012,10 @@ class Cora_Dataset(Dataset):
 
                             count+=1  
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -1987,6 +2063,10 @@ class Cora_Dataset(Dataset):
                         count+=1  
 
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                    if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -2087,6 +2167,10 @@ class Cora_Dataset(Dataset):
 
                                 count+=1   
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2165,6 +2249,10 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2259,6 +2347,10 @@ class Cora_Dataset(Dataset):
                             count+=1  
 
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                    if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -2359,6 +2451,8 @@ class Cora_Dataset(Dataset):
 
                                 count+=1   
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            id_1, id_2 = unison_shuffled_copies(id_1, id_2)
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2447,6 +2541,8 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            id_1, id_2 = unison_shuffled_copies(id_1, id_2)
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2548,6 +2644,8 @@ class Cora_Dataset(Dataset):
                             count+=1  
 
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                    if(_do_random_order):
+                            id_1, id_2 = unison_shuffled_copies(id_1, id_2)
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -2685,6 +2783,10 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2798,6 +2900,10 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -2931,6 +3037,10 @@ class Cora_Dataset(Dataset):
                             count+=1  
 
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                    if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -2953,6 +3063,7 @@ class Cora_Dataset(Dataset):
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     id_1,id_2=[],[]
+                    id_3 = []
                     train_L2=[]
                     for eee in self.train_L1[link_datum[0]]:
                         for ttt in self.train_L1[eee]:
@@ -3060,7 +3171,7 @@ class Cora_Dataset(Dataset):
                                 middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0],self.node_feature[selectPair[1]][0])
                                 id_1.append(self.re_id[selectPair[2]])
                                 id_2.append(self.re_id[selectPair[0]])
-                                id_2.append(self.re_id[selectPair[1]])
+                                id_3.append(self.re_id[selectPair[1]])
                                 
                                 # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
                                 # idx=int(np.random.choice(select,1,replace=False)[0])
@@ -3076,6 +3187,9 @@ class Cora_Dataset(Dataset):
 
                                 count+=1   
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            id_1, id_2, id_3 = unison_shuffled_copies(id_1, id_2, id_3)
+                            id_2 = list(chain.from_iterable(zip(id_2, id_3)))
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -3186,7 +3300,7 @@ class Cora_Dataset(Dataset):
                                 middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0],self.node_feature[selectPair[1]][0])
                                 id_1.append(self.re_id[selectPair[2]])
                                 id_2.append(self.re_id[selectPair[0]])
-                                id_2.append(self.re_id[selectPair[1]])
+                                id_3.append(self.re_id[selectPair[1]])
                                 
                                 # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
                                 # idx=int(np.random.choice(select,1,replace=False)[0])
@@ -3203,6 +3317,9 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            id_1, id_2, id_3 = unison_shuffled_copies(id_1, id_2, id_3)
+                            id_2 = list(chain.from_iterable(zip(id_2, id_3)))
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -3230,6 +3347,7 @@ class Cora_Dataset(Dataset):
                 if self.mode=='train': 
                     real_id=[self.re_id[link_datum[0]]]
                     id_1,id_2=[],[]
+                    id_3 = []
                     train_L2=[]
                     for eee in self.train_L1[link_datum[0]]:
                         for ttt in self.train_L1[eee]:
@@ -3334,7 +3452,7 @@ class Cora_Dataset(Dataset):
                             middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0],self.node_feature[selectPair[1]][0])
                             id_1.append(self.re_id[selectPair[2]])
                             id_2.append(self.re_id[selectPair[0]])
-                            id_2.append(self.re_id[selectPair[1]])
+                            id_3.append(self.re_id[selectPair[1]])
                             
                             # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
                             # idx=int(np.random.choice(select,1,replace=False)[0])
@@ -3351,6 +3469,9 @@ class Cora_Dataset(Dataset):
                             count+=1  
 
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                    if(_do_random_order):
+                            id_1, id_2, id_3 = unison_shuffled_copies(id_1, id_2, id_3)
+                            id_2 = list(chain.from_iterable(zip(id_2, id_3)))
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -3462,6 +3583,10 @@ class Cora_Dataset(Dataset):
 
                             count+=1   
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -3504,6 +3629,10 @@ class Cora_Dataset(Dataset):
 
                             count+=1  
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -3551,6 +3680,10 @@ class Cora_Dataset(Dataset):
                         count+=1  
 
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                    if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -3641,6 +3774,10 @@ class Cora_Dataset(Dataset):
 
                                 count+=1   
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -3716,6 +3853,10 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -3803,6 +3944,11 @@ class Cora_Dataset(Dataset):
                             count+=1  
 
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                            
+                    if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -3901,6 +4047,8 @@ class Cora_Dataset(Dataset):
 
                                 count+=1   
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            id_1, id_2 = unison_shuffled_copies(id_1, id_2)
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -3987,6 +4135,8 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            id_1, id_2 = unison_shuffled_copies(id_1, id_2)
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -4086,6 +4236,8 @@ class Cora_Dataset(Dataset):
                             count+=1  
 
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                    if(_do_random_order):
+                            id_1, id_2 = unison_shuffled_copies(id_1, id_2)
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -4225,6 +4377,10 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -4336,6 +4492,10 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -4467,6 +4627,10 @@ class Cora_Dataset(Dataset):
                             count+=1  
 
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                    if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -4502,6 +4666,7 @@ class Cora_Dataset(Dataset):
                     if rand_prob > 0.5:
                         real_id=[self.re_id[point]]
                         id_1,id_2=[],[]
+                        id_3 = []
 
                         node_list=''    
                         middle_list=''
@@ -4593,7 +4758,7 @@ class Cora_Dataset(Dataset):
                                 middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
                                 id_1.append(self.re_id[selectPair[2]])
                                 id_2.append(self.re_id[selectPair[0]])
-                                id_2.append(self.re_id[selectPair[1]])
+                                id_3.append(self.re_id[selectPair[1]])
                                 
                                 # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
                                 # idx=int(np.random.choice(select,1,replace=False)[0])
@@ -4610,6 +4775,9 @@ class Cora_Dataset(Dataset):
 
                                 count+=1   
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            id_1, id_2, id_3 = unison_shuffled_copies(id_1, id_2, id_3)
+                            id_2 = list(chain.from_iterable(zip(id_2, id_3)))
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -4626,6 +4794,7 @@ class Cora_Dataset(Dataset):
                     else: 
                         real_id=[self.re_id[point]]
                         id_1,id_2=[],[]
+                        id_3 = []
                         
                         node_list=''
                         middle_list=''    
@@ -4719,7 +4888,7 @@ class Cora_Dataset(Dataset):
                                 middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
                                 id_1.append(self.re_id[selectPair[2]])
                                 id_2.append(self.re_id[selectPair[0]])
-                                id_2.append(self.re_id[selectPair[1]])
+                                id_3.append(self.re_id[selectPair[1]])
                                 
                                 # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
                                 # idx=int(np.random.choice(select,1,replace=False)[0])
@@ -4736,6 +4905,9 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            id_1, id_2, id_3 = unison_shuffled_copies(id_1, id_2, id_3)
+                            id_2 = list(chain.from_iterable(zip(id_2, id_3)))
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -4771,6 +4943,7 @@ class Cora_Dataset(Dataset):
 
                     real_id=[self.re_id[point]]
                     id_1,id_2=[],[]
+                    id_3 = []
 
                     node_list=''    
                     middle_list=''
@@ -4863,7 +5036,7 @@ class Cora_Dataset(Dataset):
                             middle_list=middle_list+'(<extra_id_0>,<extra_id_0>), '
                             id_1.append(self.re_id[selectPair[2]])
                             id_2.append(self.re_id[selectPair[0]])
-                            id_2.append(self.re_id[selectPair[1]])
+                            id_3.append(self.re_id[selectPair[1]])
                             
                             # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
                             # idx=int(np.random.choice(select,1,replace=False)[0])
@@ -4881,6 +5054,9 @@ class Cora_Dataset(Dataset):
                             count+=1  
 
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                    if(_do_random_order):
+                            id_1, id_2, id_3 = unison_shuffled_copies(id_1, id_2, id_3)
+                            id_2 = list(chain.from_iterable(zip(id_2, id_3)))
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -4934,6 +5110,10 @@ class Cora_Dataset(Dataset):
 
                             count+=1   
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -4976,6 +5156,10 @@ class Cora_Dataset(Dataset):
 
                             count+=1  
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -5022,6 +5206,10 @@ class Cora_Dataset(Dataset):
                         count+=1  
 
                         go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                    if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -5112,6 +5300,10 @@ class Cora_Dataset(Dataset):
 
                                 count+=1   
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -5187,6 +5379,10 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -5274,6 +5470,10 @@ class Cora_Dataset(Dataset):
                             count+=1  
 
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                    if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -5372,6 +5572,8 @@ class Cora_Dataset(Dataset):
 
                                 count+=1   
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            id_1, id_2 = unison_shuffled_copies(id_1, id_2)
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -5457,6 +5659,8 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            id_1, id_2 = unison_shuffled_copies(id_1, id_2)
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -5555,6 +5759,8 @@ class Cora_Dataset(Dataset):
                             count+=1  
 
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                    if(_do_random_order):
+                            id_1, id_2 = unison_shuffled_copies(id_1, id_2)
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -5694,6 +5900,10 @@ class Cora_Dataset(Dataset):
 
                                 count+=1   
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -5806,6 +6016,10 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -5935,6 +6149,10 @@ class Cora_Dataset(Dataset):
                             count+=1  
 
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                    if(_do_random_order):
+                            real_id_mut = real_id[1:]
+                            random.shuffle(real_id_mut)
+                            real_id[1:] = real_id_mut
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
@@ -5970,6 +6188,7 @@ class Cora_Dataset(Dataset):
                     if rand_prob > 0.5:
                         real_id=[self.re_id[point]]
                         id_1,id_2=[],[]
+                        id_3 = []
 
                         node_list=''    
                         middle_list=''
@@ -6061,7 +6280,7 @@ class Cora_Dataset(Dataset):
                                 middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0],self.node_feature[selectPair[1]][0])
                                 id_1.append(self.re_id[selectPair[2]])
                                 id_2.append(self.re_id[selectPair[0]])
-                                id_2.append(self.re_id[selectPair[1]])
+                                id_3.append(self.re_id[selectPair[1]])
                                 
                                 # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
                                 # idx=int(np.random.choice(select,1,replace=False)[0])
@@ -6078,6 +6297,9 @@ class Cora_Dataset(Dataset):
 
                                 count+=1   
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            id_1, id_2, id_3 = unison_shuffled_copies(id_1, id_2, id_3)
+                            id_2 = list(chain.from_iterable(zip(id_2, id_3)))
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -6093,6 +6315,7 @@ class Cora_Dataset(Dataset):
                     else: 
                         real_id=[self.re_id[point]]
                         id_1,id_2=[],[]
+                        id_3 = []
                         
                         node_list=''
                         middle_list=''    
@@ -6186,7 +6409,7 @@ class Cora_Dataset(Dataset):
                                 middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0],self.node_feature[selectPair[1]][0])
                                 id_1.append(self.re_id[selectPair[2]])
                                 id_2.append(self.re_id[selectPair[0]])
-                                id_2.append(self.re_id[selectPair[1]])
+                                id_3.append(self.re_id[selectPair[1]])
                                 
                                 # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
                                 # idx=int(np.random.choice(select,1,replace=False)[0])
@@ -6204,6 +6427,9 @@ class Cora_Dataset(Dataset):
 
                                 count+=1  
                                 go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                        if(_do_random_order):
+                            id_1, id_2, id_3 = unison_shuffled_copies(id_1, id_2, id_3)
+                            id_2 = list(chain.from_iterable(zip(id_2, id_3)))
                         if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                             pass
                         else:
@@ -6239,6 +6465,7 @@ class Cora_Dataset(Dataset):
 
                     real_id=[self.re_id[point]]
                     id_1,id_2=[],[]
+                    id_3 = []
 
                     node_list=''    
                     middle_list=''
@@ -6330,7 +6557,7 @@ class Cora_Dataset(Dataset):
                             middle_list=middle_list+'(<extra_id_0>,{}; <extra_id_0>,{}), '.format(self.node_feature[selectPair[0]][0],self.node_feature[selectPair[1]][0])
                             id_1.append(self.re_id[selectPair[2]])
                             id_2.append(self.re_id[selectPair[0]])
-                            id_2.append(self.re_id[selectPair[1]])
+                            id_3.append(self.re_id[selectPair[1]])
                             
                             # select=list(set(list(range(len(train_L3)))).difference(set(already_idx)))
                             # idx=int(np.random.choice(select,1,replace=False)[0])
@@ -6348,6 +6575,9 @@ class Cora_Dataset(Dataset):
                             count+=1  
 
                             go_on=True if len(self.tokenizer.tokenize(source_text))+1 < self.l_max else False
+                    if(_do_random_order):
+                            id_1, id_2, id_3 = unison_shuffled_copies(id_1, id_2, id_3)
+                            id_2 = list(chain.from_iterable(zip(id_2, id_3)))
                     if len(self.tokenizer.tokenize(source_text))+1 <= self.l_max:
                         pass
                     else:
