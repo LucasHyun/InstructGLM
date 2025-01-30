@@ -110,12 +110,14 @@ class PubMed_Dataset(Dataset):
 
     # self._simdeg_dic_calc()
     def _simdeg_dic_calc(self, point_orig, point_list):
+        #return self._sim_dic_calc(point_orig, point_list)
         return {nodeid : self._sim_calc(point_orig,nodeid) * len(self.train_L1[nodeid]) for nodeid in point_list}
     
     def _sim_dic_calc(self, point_orig, point_list):
         return {nodeid : self._sim_calc(point_orig,nodeid) for nodeid in point_list}
     
     def _sim_calc(self,point1, point2):
+        #return 1.0
         return 1.0 + self.cosSim(
             self.node_feature_BERT[point1],
             self.node_feature_BERT[point2]
